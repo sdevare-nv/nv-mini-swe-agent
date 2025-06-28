@@ -8,13 +8,6 @@ import yaml
 from agent import Agent, AgentConfig, InstanceConfig
 
 
-def load_config() -> dict:
-    """Load configuration from config.yaml."""
-    config_path = Path(__file__).parent / "config.yaml"
-    with open(config_path) as f:
-        return yaml.safe_load(f)
-
-
 def fetch_github_issue(issue_url: str) -> str:
     """Fetch GitHub issue text from the URL."""
     # Convert GitHub issue URL to API URL
@@ -38,7 +31,7 @@ def main():
     repo_url = args.issue_url.split("/issues/")[0]
     problem_statement = fetch_github_issue(args.issue_url)
 
-    config = load_config()
+    config = yaml.safe_load((Path(__file__).parent / "config" / "github_issue.yaml").read_text())
     agent_config = AgentConfig(**config)
 
     instance_config = InstanceConfig(
@@ -51,13 +44,13 @@ def main():
     print(f"Cloning {repo_url} to /testbed...")
     agent.env.execute(f"git clone {repo_url} /testbed", cwd="/")
 
-    try:
-        result = agent.run()
-        print(f"\nFinal result: {result}")
-        print(f"Total cost: ${agent.model.cost:.4f}")
-        print(f"Total steps: {agent.n_steps}")
-    finally:
-        agent.env.close()
+    result = agent.run()
+    print(f"\nFinal result: {result}")
+    print(f"Total cost: ${agent.model.cost:.4f}")
+    print(f"Total steps: {agent.n_steps}")
+
+    print("Saving patch to patch.txt...")
+    Path("patch.txt").write_text(result)
 
 
 if __name__ == "__main__":

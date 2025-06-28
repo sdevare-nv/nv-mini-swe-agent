@@ -6,7 +6,9 @@ import litellm
 from jinja2 import Template
 from pydantic import BaseModel
 from swerex.deployment.docker import DockerDeployment
+from swerex.exceptions import CommandTimeoutError
 from swerex.runtime.abstract import Command as RexCommand
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 
 class AgentConfig(BaseModel):
@@ -29,6 +31,7 @@ class Model:
         self.model_kwargs = model_kwargs
         self.cost = 0.0
 
+    @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=10))
     def query(self, messages: list[dict[str, str]]) -> str:
         response: litellm.types.utils.ModelResponse = litellm.completion(  # type: ignore
             model=self.model_name, messages=messages, **self.model_kwargs
@@ -39,16 +42,24 @@ class Model:
 
 class Environment:
     def __init__(self, image: str):
+        """This class executes bash commands in a Docker container for sandboxing."""
         self.deployment = DockerDeployment(image=image)
         asyncio.run(self.deployment.start())
 
     def execute(self, command: str, cwd: str = "/testbed") -> str:
-        return asyncio.run(
-            self.deployment.runtime.execute(RexCommand(command=command, shell=True, check=False, cwd=cwd))
-        ).stdout
-
-    def close(self):
-        asyncio.run(self.deployment.stop())
+        """Execute a command in the environment.
+        No persistent shell is used, so the command must be self-contained.
+        No exceptions will be raised, the output is always a string.
+        """
+        try:
+            output = asyncio.run(
+                self.deployment.runtime.execute(RexCommand(command=command, shell=True, check=False, cwd=cwd))
+            )
+            return f"stdout: {output.stdout}\nstderr: {output.stderr}\nexit_code: {output.exit_code}"
+        except CommandTimeoutError:
+            return "The command timed out. Please change your command and make sure it doesn't require input."
+        except Exception as e:
+            return f"Error executing action: {e}"
 
 
 class Agent:
