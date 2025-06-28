@@ -28,6 +28,12 @@ classifiers = [
 ]
 
 dependencies = [
+    "pyyaml",
+    "requests",
+    "jinja2",
+    "litellm",
+    "pydantic",
+    "swerex",
 ]
 
 [tool.setuptools]
