@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import re
 from pathlib import Path
 
 import yaml
@@ -54,7 +55,13 @@ def process_instance(instance: dict, agent_config: AgentConfig, model_config: Mo
     model = LitellmModel(model_config)
     env = DockerEnvironment(image_name)
     agent = Agent(agent_config, model, env, problem_statement)
-    result = agent.run()
+    raw_result = agent.run()
+
+    # Extract only stdout content from the result (assuming exactly one match)
+    try:
+        result = re.search(r"<stdout>(.*?)</stdout>", raw_result, re.DOTALL).group(1).strip()  # type: ignore
+    except (AttributeError, ValueError):
+        result = raw_result
 
     # Capture cost and steps before resetting
     instance_cost = agent.model.cost
