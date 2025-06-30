@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 from datasets import load_dataset
 
-from agent import Agent, AgentConfig, InstanceConfig
+from agent import Agent, AgentConfig, Environment
 
 DATASET_MAPPING = {
     "full": "princeton-nlp/SWE-Bench",
@@ -49,8 +49,8 @@ def process_instance(instance: dict, agent_config: AgentConfig, output_path: Pat
     problem_statement = instance["problem_statement"]
     image_name = get_image_name(instance)
 
-    instance_config = InstanceConfig(image=image_name, problem_statement=problem_statement)
-    agent = Agent(agent_config, instance_config)
+    env = Environment(image_name)
+    agent = Agent(agent_config, env, problem_statement)
     result = agent.run()
 
     # Capture cost and steps before resetting

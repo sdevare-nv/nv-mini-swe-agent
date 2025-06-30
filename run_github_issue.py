@@ -5,7 +5,7 @@ from pathlib import Path
 import requests
 import yaml
 
-from agent import Agent, AgentConfig, InstanceConfig
+from agent import Agent, AgentConfig, Environment
 
 
 def fetch_github_issue(issue_url: str) -> str:
@@ -34,12 +34,8 @@ def main():
     config = yaml.safe_load((Path(__file__).parent / "config" / "github_issue.yaml").read_text())
     agent_config = AgentConfig(**config)
 
-    instance_config = InstanceConfig(
-        image=config["image"],
-        problem_statement=problem_statement,
-    )
-
-    agent = Agent(agent_config, instance_config)
+    env = Environment(config["image"])
+    agent = Agent(agent_config, env, problem_statement)
 
     print(f"Cloning {repo_url} to /testbed...")
     agent.env.execute(f"git clone {repo_url} /testbed", cwd="/")

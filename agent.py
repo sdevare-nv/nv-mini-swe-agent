@@ -20,11 +20,6 @@ class AgentConfig(BaseModel):
     model_kwargs: dict[str, Any] = {}
 
 
-class InstanceConfig(BaseModel):
-    image: str
-    problem_statement: str
-
-
 class Model:
     def __init__(self, model_name: str, model_kwargs: dict[str, Any]):
         self.model_name = model_name
@@ -63,10 +58,10 @@ class Environment:
 
 
 class Agent:
-    def __init__(self, config: AgentConfig, instance_config: InstanceConfig):
+    def __init__(self, config: AgentConfig, env: Environment, problem_statement: str):
         self.config = config
-        self.instance_config = instance_config
-        instance_message = Template(config.instance_template).render(**instance_config.model_dump())
+        self.problem_statement = problem_statement
+        instance_message = Template(config.instance_template).render(problem_statement=problem_statement)
         print(config.system_template)
         print(instance_message)
         self.history = [
@@ -74,7 +69,7 @@ class Agent:
             {"role": "user", "content": instance_message},
         ]
         self.model = Model(config.model_name, config.model_kwargs)
-        self.env = Environment(instance_config.image)
+        self.env = env
 
     @property
     def n_steps(self) -> int:
