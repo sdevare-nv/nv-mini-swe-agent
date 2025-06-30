@@ -4,7 +4,7 @@ import subprocess
 from jinja2 import Template
 from pydantic import BaseModel
 
-from nanoswea.protocols import Environment, Model
+from nanoswea import Environment, Model
 
 
 class AgentConfig(BaseModel):
