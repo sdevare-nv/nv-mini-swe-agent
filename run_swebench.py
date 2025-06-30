@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 from datasets import load_dataset
 
-from agent import Agent, AgentConfig, Environment
+from agent import Agent, AgentConfig, DockerEnvironment
 
 DATASET_MAPPING = {
     "full": "princeton-nlp/SWE-Bench",
@@ -49,7 +49,7 @@ def process_instance(instance: dict, agent_config: AgentConfig, output_path: Pat
     problem_statement = instance["problem_statement"]
     image_name = get_image_name(instance)
 
-    env = Environment(image_name)
+    env = DockerEnvironment(image_name)
     agent = Agent(agent_config, env, problem_statement)
     result = agent.run()
 

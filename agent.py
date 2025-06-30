@@ -1,12 +1,12 @@
 import asyncio
 import re
-from typing import Any
+import subprocess
+from typing import Any, Protocol
 
 import litellm
 from jinja2 import Template
 from pydantic import BaseModel
 from swerex.deployment.docker import DockerDeployment
-from swerex.exceptions import CommandTimeoutError
 from swerex.runtime.abstract import Command as RexCommand
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -35,26 +35,45 @@ class Model:
         return response.choices[0].message.content  # type: ignore
 
 
-class Environment:
+class Environment(Protocol):
+    def execute(self, command: str, cwd: str = "/testbed") -> str:
+        """Execute a command in the environment and return the raw output."""
+        ...
+
+
+class DockerEnvironment:
     def __init__(self, image: str):
         """This class executes bash commands in a Docker container for sandboxing."""
         self.deployment = DockerDeployment(image=image)
         asyncio.run(self.deployment.start())
 
     def execute(self, command: str, cwd: str = "/testbed") -> str:
-        """Execute a command in the environment.
-        No persistent shell is used, so the command must be self-contained.
-        No exceptions will be raised, the output is always a string.
-        """
+        """Execute a command in the environment and return the raw output."""
+        output = asyncio.run(
+            self.deployment.runtime.execute(RexCommand(command=command, shell=True, check=False, cwd=cwd))
+        )
+        return f"stdout: {output.stdout}\nstderr: {output.stderr}\nexit_code: {output.exit_code}"
+
+
+class LocalEnvironment:
+    def __init__(self):
+        """This class executes bash commands directly on the local machine."""
+        pass
+
+    def execute(self, command: str, cwd: str = "/testbed") -> str:
+        """Execute a command in the local environment and return the raw output."""
         try:
-            output = asyncio.run(
-                self.deployment.runtime.execute(RexCommand(command=command, shell=True, check=False, cwd=cwd))
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                cwd=cwd,
+                timeout=30,
             )
-            return f"stdout: {output.stdout}\nstderr: {output.stderr}\nexit_code: {output.exit_code}"
-        except CommandTimeoutError:
-            return "The command timed out. Please change your command and make sure it doesn't require input."
-        except Exception as e:
-            return f"Error executing action: {e}"
+            return f"stdout: {result.stdout}\nstderr: {result.stderr}\nexit_code: {result.returncode}"
+        except subprocess.TimeoutExpired as e:
+            raise TimeoutError from e
 
 
 class Agent:
@@ -125,5 +144,11 @@ class Agent:
     def execute_action(self, action: str) -> str:
         """Execute the action and return the observation"""
         if action == "submit":
-            return self.env.execute("git add -A && git diff --cached")
-        return self.env.execute(action).strip() or "The command returned no output."
+            action = "git add -A && git diff --cached"
+
+        try:
+            return self.env.execute(action).strip() or "The command returned no output."
+        except TimeoutError:
+            return "The command timed out. Please change your command and make sure it doesn't require input."
+        except Exception as e:
+            return f"Error executing action: {e}"
