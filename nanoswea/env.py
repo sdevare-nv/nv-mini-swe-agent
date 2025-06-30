@@ -1,3 +1,4 @@
+import shlex
 import subprocess
 import uuid
 
@@ -9,56 +10,48 @@ class LocalEnvironment:
 
     def execute(self, command: str, cwd: str = "/testbed") -> str:
         """Execute a command in the local environment and return the raw output."""
-        try:
-            result = subprocess.run(
-                command,
-                shell=True,
-                capture_output=True,
-                text=True,
-                cwd=cwd,
-                timeout=30,
-            )
-            return f"stdout: {result.stdout}\nstderr: {result.stderr}\nexit_code: {result.returncode}"
-        except subprocess.TimeoutExpired as e:
-            raise TimeoutError from e
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+            timeout=30,
+        )
+        return f"stdout: {result.stdout}\nstderr: {result.stderr}\nexit_code: {result.returncode}"
 
 
 class DockerEnvironment:
     def __init__(self, image: str):
         """This class executes bash commands in a Docker container using direct docker commands."""
-        self.image = image
-        self.container_name = f"nanoswea-{uuid.uuid4().hex[:8]}"
-        self.container_id = None
-        self._start_container()
+        self.container_id = self._start_container(image)
 
-    def _start_container(self):
-        """Start the Docker container."""
-        try:
-            # Start container in detached mode with /testbed as working directory
-            result = subprocess.run(
-                [
-                    "docker",
-                    "run",
-                    "-d",
-                    "--name",
-                    self.container_name,
-                    "-w",
-                    "/testbed",
-                    self.image,
-                    "sleep",
-                    "infinity",  # Keep container running
-                ],
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-            if result.returncode != 0:
-                msg = f"Failed to start container: {result.stderr}"
-                raise RuntimeError(msg)
-            self.container_id = result.stdout.strip()
-        except subprocess.TimeoutExpired as e:
-            msg = "Failed to start Docker container"
-            raise TimeoutError(msg) from e
+    @staticmethod
+    def _start_container(image: str) -> str:
+        """Start the Docker container and return the container ID."""
+        container_name = f"nanoswea-{uuid.uuid4().hex[:8]}"
+        cmd = [
+            "docker",
+            "run",
+            "-d",
+            "--name",
+            container_name,
+            "-w",
+            "/testbed",
+            image,
+            "sleep",
+            "infinity",  # Keep container running
+        ]
+        print(f"Starting container with command: {shlex.join(cmd)}")
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True,
+        )
+        print(f"Started container {container_name} with ID {result.stdout.strip()}")
+        return result.stdout.strip()
 
     def execute(self, command: str, cwd: str = "/testbed") -> str:
         """Execute a command in the Docker container and return the raw output."""
@@ -66,25 +59,19 @@ class DockerEnvironment:
             msg = "Container not started"
             raise RuntimeError(msg)
 
-        try:
-            result = subprocess.run(
-                ["docker", "exec", "-w", cwd, self.container_id, "bash", "-c", command],
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-            return f"stdout: {result.stdout}\nstderr: {result.stderr}\nexit_code: {result.returncode}"
-        except subprocess.TimeoutExpired as e:
-            raise TimeoutError from e
+        result = subprocess.run(
+            ["docker", "exec", "-w", cwd, self.container_id, "bash", "-c", command],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        return f"stdout: {result.stdout}\nstderr: {result.stderr}\nexit_code: {result.returncode}"
 
     def cleanup(self):
         """Stop and remove the Docker container."""
         if self.container_id:
-            try:
-                subprocess.run(["docker", "stop", self.container_id], capture_output=True)
-                subprocess.run(["docker", "rm", self.container_id], capture_output=True)
-            except Exception:
-                pass  # Best effort cleanup
+            subprocess.run(["docker", "stop", self.container_id], capture_output=True, check=False)
+            subprocess.run(["docker", "rm", self.container_id], capture_output=True, check=False)
 
     def __del__(self):
         """Cleanup container when object is destroyed."""

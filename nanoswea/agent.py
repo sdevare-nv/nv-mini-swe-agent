@@ -1,4 +1,5 @@
 import re
+import subprocess
 
 from jinja2 import Template
 from pydantic import BaseModel
@@ -84,7 +85,7 @@ class Agent:
 
         try:
             return self.env.execute(action).strip() or "The command returned no output."
-        except TimeoutError:
+        except (TimeoutError, subprocess.TimeoutExpired):
             return "The command timed out. Please change your command and make sure it doesn't require input."
         except Exception as e:
             return f"Error executing action: {e}"
