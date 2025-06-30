@@ -1,4 +1,9 @@
-# nano-SWE-agent: The smallest AI agent to solve GitHub issues
+<div align="center">
+
+<img src="docs/assets/nano-swe-agent-banner.svg" alt="nano-swe-agent banner" style="height: 12em"/>
+<h1>The smallest AI agent to solve GitHub issues</h1>
+
+</div>
 
 nano-SWE-agent is an AI agent implemented in [100 lines of python](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/agent.py)!
 Okay, maybe add another 100 lines for a [minimal sandboxed environment](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/env.py) 
