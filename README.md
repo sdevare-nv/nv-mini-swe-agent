@@ -1,7 +1,7 @@
 <div align="center">
 
 <img src="docs/assets/nano-swe-agent-banner.svg" alt="nano-swe-agent banner" style="height: 12em"/>
-<h1>The smallest AI agent to solve GitHub issues</h1>
+<h1>The 100 line AI agent that solves GitHub issues</h1>
 
 </div>
 
