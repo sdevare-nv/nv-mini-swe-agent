@@ -16,7 +16,6 @@ class AgentConfig(BaseModel):
 class Agent:
     def __init__(self, config: AgentConfig, model: Model, env: Environment, problem_statement: str):
         self.config = config
-        self.problem_statement = problem_statement
         instance_message = Template(config.instance_template).render(problem_statement=problem_statement)
         print(config.system_template)
         print(instance_message)
