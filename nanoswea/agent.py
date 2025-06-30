@@ -3,6 +3,7 @@ import subprocess
 
 from jinja2 import Template
 from pydantic import BaseModel
+from rich.console import Console
 
 from nanoswea import Environment, Model
 
@@ -13,13 +14,15 @@ class AgentConfig(BaseModel):
     step_limit: int = 0
     cost_limit: float = 3.0
 
+console = Console(highlight=False)  # Print with colors
+
 
 class Agent:
     def __init__(self, config: AgentConfig, model: Model, env: Environment, problem_statement: str):
         self.config = config
         instance_message = Template(config.instance_template).render(problem_statement=problem_statement)
-        print(config.system_template)
-        print(instance_message)
+        console.print(f"[bold green]System template:[/bold green]\n{config.system_template}", highlight=False)
+        console.print(f"[bold green]Instance message:[/bold green]\n{instance_message}", highlight=False)
         self.history = [
             {"role": "system", "content": config.system_template},
             {"role": "user", "content": instance_message},
@@ -29,7 +32,7 @@ class Agent:
 
     @property
     def n_steps(self) -> int:
-        return len(self.history) // 2
+        return (len(self.history) - 2) // 2 + 1
 
     def run(self) -> str:
         """Run the agent and return the final observation.
@@ -54,7 +57,7 @@ class Agent:
             return True, "", "cost_limit_exceeded"
         message = self.model.query(self.history)
         assert isinstance(message, str)
-        print(message)
+        console.print(f"[bold red]Assistant (step {self.n_steps}):[/bold red]\n{message}")
         self.history.append({"role": "assistant", "content": message})
         action = self.parse_action(message)
         is_done = False
@@ -65,7 +68,7 @@ class Agent:
         else:
             observation = "Please always provide exactly one action in triple backticks."
         self.history.append({"role": "user", "content": observation})
-        print(observation)
+        console.print(f"[bold green]User (step {self.n_steps}):[/bold green]\n{observation}")
         return is_done, message, observation
 
     @staticmethod

@@ -18,7 +18,7 @@ class LocalEnvironment:
             cwd=cwd,
             timeout=30,
         )
-        return f"stdout: {result.stdout}\nstderr: {result.stderr}\nexit_code: {result.returncode}"
+        return f"<stdout>\n{result.stdout}\n</stdout>\n<stderr>\n{result.stderr}\n</stderr>\n<exit_code>\n{result.returncode}\n</exit_code>"
 
 
 class DockerEnvironment:
@@ -65,7 +65,7 @@ class DockerEnvironment:
             text=True,
             timeout=30,
         )
-        return f"stdout: {result.stdout}\nstderr: {result.stderr}\nexit_code: {result.returncode}"
+        return f"<stdout>\n{result.stdout}\n</stdout>\n<stderr>\n{result.stderr}\n</stderr>\n<exit_code>\n{result.returncode}\n</exit_code>"
 
     def cleanup(self):
         """Stop and remove the Docker container."""
