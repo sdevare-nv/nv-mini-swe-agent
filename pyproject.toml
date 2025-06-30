@@ -35,7 +35,6 @@ dependencies = [
     "jinja2",
     "litellm",
     "pydantic>=2",
-    "swerex",
     "tenacity",
     "datasets",
 ]
