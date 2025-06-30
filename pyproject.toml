@@ -5,10 +5,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nano-swe-agent"
-description = "Nano SWE Agent"
+version = "0.1.0"
+description = "Nano SWE Agent - A simple AI software engineering agent"
 readme = "README.md"
 requires-python = ">=3.11"
-license = {file = "LICENSE"}
+license = {file = "LICENSE.md"}
 keywords = ["nlp", "agents", "code"]
 authors = [
     {name = "Kilian Lieret", email = "kilian.lieret@posteo.de" },
@@ -18,6 +19,7 @@ authors = [
 classifiers = [
   # How mature is this project? Common values are
   #   3 - Alpha, 4 - Beta, 5 - Production/Stable
+  "Development Status :: 3 - Alpha",
   "Operating System :: OS Independent",
   # Indicate who your project is intended for
   "Intended Audience :: Developers",
@@ -32,12 +34,30 @@ dependencies = [
     "requests",
     "jinja2",
     "litellm",
-    "pydantic",
+    "pydantic>=2",
     "swerex",
+    "tenacity",
+    "datasets",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "pre-commit",
+    "ruff",
+]
+
+[project.scripts]
+nanoswea-github = "nanoswea.run_github_issue:main"
+nanoswea-swebench = "nanoswea.run_swebench:main"
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nanoswea*"]
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.

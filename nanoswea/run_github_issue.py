@@ -5,7 +5,7 @@ from pathlib import Path
 import requests
 import yaml
 
-from agent import Agent, AgentConfig, DockerEnvironment
+from nanoswea import Agent, AgentConfig, DockerEnvironment
 
 
 def fetch_github_issue(issue_url: str) -> str:
@@ -31,7 +31,7 @@ def main():
     repo_url = args.issue_url.split("/issues/")[0]
     problem_statement = fetch_github_issue(args.issue_url)
 
-    config = yaml.safe_load((Path(__file__).parent / "config" / "github_issue.yaml").read_text())
+    config = yaml.safe_load((Path(__file__).parent.parent / "config" / "github_issue.yaml").read_text())
     agent_config = AgentConfig(**config)
 
     env = DockerEnvironment(config["image"])

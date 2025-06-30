@@ -1,14 +1,11 @@
-import asyncio
 import re
-import subprocess
-from typing import Any, Protocol
+from typing import Any
 
-import litellm
 from jinja2 import Template
 from pydantic import BaseModel
-from swerex.deployment.docker import DockerDeployment
-from swerex.runtime.abstract import Command as RexCommand
-from tenacity import retry, stop_after_attempt, wait_exponential
+
+from nanoswea.env import Environment
+from nanoswea.model import Model
 
 
 class AgentConfig(BaseModel):
@@ -18,62 +15,6 @@ class AgentConfig(BaseModel):
     cost_limit: float = 3.0
     model_name: str
     model_kwargs: dict[str, Any] = {}
-
-
-class Model:
-    def __init__(self, model_name: str, model_kwargs: dict[str, Any]):
-        self.model_name = model_name
-        self.model_kwargs = model_kwargs
-        self.cost = 0.0
-
-    @retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def query(self, messages: list[dict[str, str]]) -> str:
-        response: litellm.types.utils.ModelResponse = litellm.completion(  # type: ignore
-            model=self.model_name, messages=messages, **self.model_kwargs
-        )
-        self.cost += litellm.cost_calculator.completion_cost(response)
-        return response.choices[0].message.content  # type: ignore
-
-
-class Environment(Protocol):
-    def execute(self, command: str, cwd: str = "/testbed") -> str:
-        """Execute a command in the environment and return the raw output."""
-        ...
-
-
-class DockerEnvironment:
-    def __init__(self, image: str):
-        """This class executes bash commands in a Docker container for sandboxing."""
-        self.deployment = DockerDeployment(image=image)
-        asyncio.run(self.deployment.start())
-
-    def execute(self, command: str, cwd: str = "/testbed") -> str:
-        """Execute a command in the environment and return the raw output."""
-        output = asyncio.run(
-            self.deployment.runtime.execute(RexCommand(command=command, shell=True, check=False, cwd=cwd))
-        )
-        return f"stdout: {output.stdout}\nstderr: {output.stderr}\nexit_code: {output.exit_code}"
-
-
-class LocalEnvironment:
-    def __init__(self):
-        """This class executes bash commands directly on the local machine."""
-        pass
-
-    def execute(self, command: str, cwd: str = "/testbed") -> str:
-        """Execute a command in the local environment and return the raw output."""
-        try:
-            result = subprocess.run(
-                command,
-                shell=True,
-                capture_output=True,
-                text=True,
-                cwd=cwd,
-                timeout=30,
-            )
-            return f"stdout: {result.stdout}\nstderr: {result.stderr}\nexit_code: {result.returncode}"
-        except subprocess.TimeoutExpired as e:
-            raise TimeoutError from e
 
 
 class Agent:

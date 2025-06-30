@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 from datasets import load_dataset
 
-from agent import Agent, AgentConfig, DockerEnvironment
+from nanoswea import Agent, AgentConfig, DockerEnvironment
 
 DATASET_MAPPING = {
     "full": "princeton-nlp/SWE-Bench",
@@ -126,7 +126,7 @@ def main():
         instances = instances[slice(*values)]
 
     # Load agent configuration
-    config = yaml.safe_load((Path(__file__).parent / "config" / "github_issue.yaml").read_text())
+    config = yaml.safe_load((Path(__file__).parent.parent / "config" / "github_issue.yaml").read_text())
     agent_config = AgentConfig(**config)
 
     output_path = Path(args.output)
