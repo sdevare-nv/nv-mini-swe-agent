@@ -6,7 +6,9 @@ from pathlib import Path
 import yaml
 from datasets import load_dataset
 
-from nanoswea import Agent, AgentConfig, DockerEnvironment
+from nanoswea.agent import Agent, AgentConfig
+from nanoswea.env import DockerEnvironment
+from nanoswea.model import LitellmModel, ModelConfig
 
 DATASET_MAPPING = {
     "full": "princeton-nlp/SWE-Bench",
@@ -28,14 +30,14 @@ def get_image_name(instance: dict) -> str:
     return image_name
 
 
-def update_output_file(output_path: Path, instance_id: str, agent_config: AgentConfig, result: str):
+def update_output_file(output_path: Path, instance_id: str, model_config: ModelConfig, result: str):
     """Update the output JSON file with results from a single instance."""
     output_data = {}
     if output_path.exists():
         output_data = json.loads(output_path.read_text())
 
     output_data[instance_id] = {
-        "model_name_or_path": agent_config.model_name,
+        "model_name_or_path": model_config.model_name,
         "instance_id": instance_id,
         "model_patch": result,
     }
@@ -43,14 +45,15 @@ def update_output_file(output_path: Path, instance_id: str, agent_config: AgentC
     output_path.write_text(json.dumps(output_data, indent=2))
 
 
-def process_instance(instance: dict, agent_config: AgentConfig, output_path: Path) -> dict:
+def process_instance(instance: dict, agent_config: AgentConfig, model_config: ModelConfig, output_path: Path) -> dict:
     """Process a single SWEBench instance."""
     instance_id = instance["instance_id"]
     problem_statement = instance["problem_statement"]
     image_name = get_image_name(instance)
 
+    model = LitellmModel(model_config)
     env = DockerEnvironment(image_name)
-    agent = Agent(agent_config, env, problem_statement)
+    agent = Agent(agent_config, model, env, problem_statement)
     result = agent.run()
 
     # Capture cost and steps before resetting
@@ -64,7 +67,7 @@ def process_instance(instance: dict, agent_config: AgentConfig, output_path: Pat
     print(f"Cost: ${instance_cost:.4f}")
     print(f"Steps: {instance_steps}")
 
-    update_output_file(output_path, instance_id, agent_config, result)
+    update_output_file(output_path, instance_id, model_config, result)
 
     return {
         "instance_id": instance_id,
@@ -74,7 +77,7 @@ def process_instance(instance: dict, agent_config: AgentConfig, output_path: Pat
     }
 
 
-def process_instances(agent_config: AgentConfig, instances: list[dict], output_path: Path):
+def process_instances(agent_config: AgentConfig, model_config: ModelConfig, instances: list[dict], output_path: Path):
     """Process a list of SWEBench instances."""
     results = []
     running_cost = 0.0
@@ -88,7 +91,7 @@ def process_instances(agent_config: AgentConfig, instances: list[dict], output_p
         print(f"Image: {image_name}")
         print(f"{'=' * 60}")
 
-        result = process_instance(instance, agent_config, output_path)
+        result = process_instance(instance, agent_config, model_config, output_path)
         results.append(result)
         running_cost += result["cost"]
 
@@ -126,14 +129,15 @@ def main():
         instances = instances[slice(*values)]
 
     # Load agent configuration
-    config = yaml.safe_load((Path(__file__).parent.parent / "config" / "github_issue.yaml").read_text())
-    agent_config = AgentConfig(**config)
+    config = yaml.safe_load((Path(__file__).parent / "config" / "github_issue.yaml").read_text())
+    agent_config = AgentConfig(**config["agent"])
+    model_config = ModelConfig(**config["model"])
 
     output_path = Path(args.output)
     print(f"Running on {len(instances)} instances...")
     print(f"Results will be saved to {output_path}")
 
-    process_instances(agent_config, instances, output_path)
+    process_instances(agent_config, model_config, instances, output_path)
 
 
 if __name__ == "__main__":

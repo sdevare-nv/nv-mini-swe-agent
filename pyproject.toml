@@ -59,6 +59,9 @@ include-package-data = true
 where = ["."]
 include = ["nanoswea*"]
 
+[tool.setuptools.package-data]
+nanoswea = ["config/**/*"]
+
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [

@@ -1,11 +1,9 @@
 import re
-from typing import Any
 
 from jinja2 import Template
 from pydantic import BaseModel
 
-from nanoswea.env import Environment
-from nanoswea.model import Model
+from nanoswea.protocols import Environment, Model
 
 
 class AgentConfig(BaseModel):
@@ -13,12 +11,10 @@ class AgentConfig(BaseModel):
     instance_template: str
     step_limit: int = 0
     cost_limit: float = 3.0
-    model_name: str
-    model_kwargs: dict[str, Any] = {}
 
 
 class Agent:
-    def __init__(self, config: AgentConfig, env: Environment, problem_statement: str):
+    def __init__(self, config: AgentConfig, model: Model, env: Environment, problem_statement: str):
         self.config = config
         self.problem_statement = problem_statement
         instance_message = Template(config.instance_template).render(problem_statement=problem_statement)
@@ -28,7 +24,7 @@ class Agent:
             {"role": "system", "content": config.system_template},
             {"role": "user", "content": instance_message},
         ]
-        self.model = Model(config.model_name, config.model_kwargs)
+        self.model = model
         self.env = env
 
     @property

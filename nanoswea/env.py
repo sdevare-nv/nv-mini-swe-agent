@@ -1,15 +1,8 @@
 import asyncio
 import subprocess
-from typing import Protocol
 
 from swerex.deployment.docker import DockerDeployment
 from swerex.runtime.abstract import Command as RexCommand
-
-
-class Environment(Protocol):
-    def execute(self, command: str, cwd: str = "/testbed") -> str:
-        """Execute a command in the environment and return the raw output."""
-        ...
 
 
 class DockerEnvironment:

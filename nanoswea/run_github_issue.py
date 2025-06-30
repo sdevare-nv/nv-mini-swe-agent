@@ -5,7 +5,9 @@ from pathlib import Path
 import requests
 import yaml
 
-from nanoswea import Agent, AgentConfig, DockerEnvironment
+from nanoswea.agent import Agent, AgentConfig
+from nanoswea.env import DockerEnvironment
+from nanoswea.model import LitellmModel, ModelConfig
 
 
 def fetch_github_issue(issue_url: str) -> str:
@@ -31,11 +33,13 @@ def main():
     repo_url = args.issue_url.split("/issues/")[0]
     problem_statement = fetch_github_issue(args.issue_url)
 
-    config = yaml.safe_load((Path(__file__).parent.parent / "config" / "github_issue.yaml").read_text())
-    agent_config = AgentConfig(**config)
+    config = yaml.safe_load((Path(__file__).parent / "config" / "github_issue.yaml").read_text())
+    agent_config = AgentConfig(**config["agent"])
+    model_config = ModelConfig(**config["model"])
 
+    model = LitellmModel(model_config)
     env = DockerEnvironment(config["image"])
-    agent = Agent(agent_config, env, problem_statement)
+    agent = Agent(agent_config, model, env, problem_statement)
 
     print(f"Cloning {repo_url} to /testbed...")
     agent.env.execute(f"git clone {repo_url} /testbed", cwd="/")
