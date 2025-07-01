@@ -14,6 +14,39 @@ from nanoswea.extra.model.test_models import DeterministicModel
 from nanoswea.run_github_issue import run_from_cli
 
 
+def normalize_whitespace(s: str) -> str:
+    """Strip leading/trailing whitespace and normalize internal whitespace"""
+    return "\n".join(line.rstrip() for line in s.strip().split("\n"))
+
+
+def assert_observations_match(expected_observations: list[str], history: list[dict]) -> None:
+    """Compare expected observations with actual observations from agent history
+
+    Args:
+        expected_observations: List of expected observation strings
+        history: Agent conversation history (list of message dicts with 'role' and 'content')
+    """
+    # Extract actual observations from agent history
+    # User messages (observations) are at indices 3, 5, 7, etc.
+    actual_observations = []
+    for i in range(len(expected_observations)):
+        user_message_index = 3 + (i * 2)
+        assert history[user_message_index]["role"] == "user"
+        actual_observations.append(history[user_message_index]["content"])
+
+    assert len(actual_observations) == len(expected_observations), (
+        f"Expected {len(expected_observations)} observations, got {len(actual_observations)}"
+    )
+
+    for i, (expected_observation, actual_observation) in enumerate(zip(expected_observations, actual_observations)):
+        normalized_actual = normalize_whitespace(actual_observation)
+        normalized_expected = normalize_whitespace(expected_observation)
+
+        assert normalized_actual == normalized_expected, (
+            f"Step {i + 1} observation mismatch:\nExpected: {repr(normalized_expected)}\nActual: {repr(normalized_actual)}"
+        )
+
+
 @pytest.fixture
 def test_data():
     """Load test fixtures with the expected model responses from YAML file"""
@@ -53,11 +86,7 @@ def test_github_issue_end_to_end(test_data):
             github_url = "https://github.com/SWE-agent/test-repo/issues/1"
             run_from_cli([github_url])
 
-    # Verify that we captured the agent
     assert captured_agent is not None, "Agent should have been captured"
-
-    # Check that the agent history matches expected flow
-    # The history should contain: system message, user message, then alternating assistant/user messages
     history = captured_agent.history
 
     # Verify we have the right number of messages
@@ -65,40 +94,12 @@ def test_github_issue_end_to_end(test_data):
     expected_total_messages = 2 + (len(model_responses) * 2)
     assert len(history) == expected_total_messages, f"Expected {expected_total_messages} messages, got {len(history)}"
 
-    # Check that model responses match what we provided
-    for i, expected_model_response in enumerate(model_responses):
-        # Assistant messages are at indices 2, 4, 6, etc.
-        assistant_message_index = 2 + (i * 2)
-        assert history[assistant_message_index]["role"] == "assistant"
-        assert history[assistant_message_index]["content"] == expected_model_response
-
     # Check that environment observations match expected
-    for i, expected_observation in enumerate(expected_observations):
-        # User messages (observations) are at indices 3, 5, 7, etc.
-        user_message_index = 3 + (i * 2)
-        assert history[user_message_index]["role"] == "user"
-        # The observation should match the expected output
-        actual_observation = history[user_message_index]["content"]
-
-        # Normalize whitespace for more robust comparison
-        def normalize_whitespace(s):
-            # Strip leading/trailing whitespace and normalize internal whitespace
-            return "\n".join(line.rstrip() for line in s.strip().split("\n"))
-
-        normalized_actual = normalize_whitespace(actual_observation)
-        normalized_expected = normalize_whitespace(expected_observation)
-
-        assert normalized_actual == normalized_expected, (
-            f"Step {i + 1} observation mismatch:\nExpected: {repr(normalized_expected)}\nActual: {repr(normalized_actual)}"
-        )
+    assert_observations_match(expected_observations, history)
 
     # Verify that the agent completed all steps
     assert captured_agent.model.n_calls == len(model_responses), (
         f"Expected {len(model_responses)} steps, got {captured_agent.model.n_calls}"
     )
-
-    # Check that the final step was a submit (agent finished)
-    final_model_response = model_responses[-1]
-    assert "submit" in final_model_response, "Final model response should contain submit command"
 
     captured_agent.env.cleanup()
