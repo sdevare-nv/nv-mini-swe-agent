@@ -50,18 +50,17 @@ class Agent:
             response: Model reponse (if any)
             observation: The observation or error message
         """
-        if 0 < self.config.step_limit <= self.model.n_calls:
-            return True, "", "step_limit_exceeded"
-        if 0 < self.config.cost_limit <= self.model.cost:
-            return True, "", "cost_limit_exceeded"
+        if 0 < self.config.step_limit <= self.model.n_calls or 0 < self.config.cost_limit <= self.model.cost:
+            return True, "", "limits_exceeded"
+
         message = self.model.query(self.history)
-        assert isinstance(message, str)
         console.print(f"[bold red]Assistant (step {self.model.n_calls}, ${self.model.cost:.2f}):[/bold red]\n{message}")
         self.history.append({"role": "assistant", "content": message})
-        action = self.parse_action(message)
-        is_finished, observation = self.execute_action(action)
+
+        is_finished, observation = self.execute_action(self.parse_action(message))
         self.history.append({"role": "user", "content": observation})
         console.print(f"[bold green]Observation (step {self.model.n_calls}):[/bold green]\n{observation}")
+
         return is_finished, message, observation
 
     @staticmethod
@@ -69,8 +68,7 @@ class Agent:
         """Parse the action from the message
         (assumes action is the first triple backticks block)
         """
-        match = re.search(r"```[a-zA-Z]*\n(.*?)(?=\n```|```)", message, re.DOTALL)
-        if match:
+        if match := re.search(r"```[a-zA-Z]*\n(.*?)(?=\n```|```)", message, re.DOTALL):
             return match.group(1).strip()
         return ""
 
@@ -92,9 +90,9 @@ class Agent:
             return False, "The command timed out. Please change your command and make sure it doesn't require input."
         except Exception as e:
             return False, f"Error executing action: {e}"
-        if output.get("stdout") and output["stdout"].splitlines()[0] == "NANO_SWE_AGENT_FINAL_OUTPUT":
-            return True, "\n".join(output["stdout"].splitlines()[1:])
-        return (False, "\n".join([f"<{key}>\n{value}\n</{key}>" for key, value in output.items()]))
+        if final_output := self.get_final_output(output):
+            return True, final_output
+        return False, "\n".join([f"<{key}>\n{value}\n</{key}>" for key, value in output.items()])
 
     def reject_action(self, action: str) -> str:
         if self.config.confirm_actions:
@@ -102,4 +100,10 @@ class Agent:
                 "[bold yellow]Execute?[/bold yellow] ([green][bold]Enter[/bold] to confirm[/green], or enter rejection message)"
             ):
                 return f"Command not executed. The user rejected your command with the following message: {response}"
+        return ""
+
+    def get_final_output(self, output: dict[str, str]) -> str:
+        """Check whether the agent has finished its task. Returning a non-empty string will terminate the agent."""
+        if output.get("stdout") and output["stdout"].splitlines()[0] == "NANO_SWE_AGENT_FINAL_OUTPUT":
+            return "\n".join(output["stdout"].splitlines()[1:])
         return ""
