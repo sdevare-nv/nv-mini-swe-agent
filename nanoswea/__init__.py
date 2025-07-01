@@ -1,7 +1,9 @@
 """Nano SWE Agent - A simple AI software engineering agent."""
 
+__version__ = "1.0.0.dev1"
+
 from pathlib import Path
-from typing import Protocol, TypedDict
+from typing import Protocol
 
 import dotenv
 
@@ -30,4 +32,4 @@ class Environment(Protocol):
         ...
 
 
-__all__ = ["Model", "Environment", "package_dir"]
+__all__ = ["Model", "Environment", "package_dir", "__version__"]

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nano-swe-agent"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Nano SWE Agent - A simple AI software engineering agent"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -56,6 +56,9 @@ nano-swe-agent = "nanoswea.__main__:main"
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {attr = "nanoswea.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["."]
