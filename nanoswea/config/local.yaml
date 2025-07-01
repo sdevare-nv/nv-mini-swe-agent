@@ -16,6 +16,3 @@ agent:
   step_limit: 0.
   cost_limit: 0.
   confirm_actions: true
-
-model:
-  model_name: "claude-sonnet-4-20250514"

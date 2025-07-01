@@ -1,6 +1,6 @@
 """Nano SWE Agent - A simple AI software engineering agent."""
 
-__version__ = "1.0.0.dev1"
+__version__ = "1.0.0.dev2"
 
 from pathlib import Path
 from typing import Protocol

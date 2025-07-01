@@ -18,8 +18,5 @@ agent:
   cost_limit: 3.0
   confirm_actions: false
 
-model:
-  model_name: "claude-sonnet-4-20250514"
-
 environment:
   image: "python:3.11"

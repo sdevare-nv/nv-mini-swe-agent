@@ -6,12 +6,15 @@ from pathlib import Path
 import requests
 import typer
 import yaml
+from rich.console import Console
 
 from nanoswea import package_dir
 from nanoswea.agent import Agent, AgentConfig
 from nanoswea.environment import DockerEnvironment, DockerEnvironmentConfig
 from nanoswea.model import LitellmModel, ModelConfig
 
+DEFAULT_CONFIG = Path(os.getenv("NSWEA_GITHUB_CONFIG_PATH", package_dir / "config" / "github_issue.yaml"))
+console = Console(highlight=False)
 app = typer.Typer()
 
 
@@ -33,45 +36,53 @@ def fetch_github_issue(issue_url: str) -> str:
     return f"GitHub Issue: {title}\n\n{body}"
 
 
-def run_github_issue(issue_url: str, repo_url: str, model_name: str | None = None) -> Agent:
+@app.command()
+def main(
+    issue_url: str = typer.Option(prompt="Enter GitHub issue URL", help="GitHub issue URL"),
+    config: str = typer.Option(str(DEFAULT_CONFIG), "--config", help="Path to config file"),
+    model: str | None = typer.Option(None, "--model", help="Model to use"),
+) -> Agent:
+    """Run nano-SWE-agent on a GitHub issue"""
+
+    _config = yaml.safe_load(Path(config).read_text())
+
+    _model = _config.get("model", {}).get("model_name")
+    if model:
+        _model = model
+    if not _model:
+        _model = os.getenv("NSWEA_MODEL_NAME")
+    if not _model:
+        _model = console.input("[bold yellow]Enter your model name: [/bold yellow]")
+
     problem_statement = fetch_github_issue(issue_url)
 
-    config = yaml.safe_load((package_dir / "config" / "github_issue.yaml").read_text())
-    agent_config = AgentConfig(**config["agent"])
-    if model_name:
-        config["model"]["model_name"] = model_name
-    model_config = ModelConfig(**config["model"])
+    agent = Agent(
+        AgentConfig(**(_config["agent"] | {"confirm_actions": False})),
+        LitellmModel(ModelConfig(**(_config["model"] | {"model_name": _model}))),
+        DockerEnvironment(DockerEnvironmentConfig(**_config.get("environment", {}))),
+        problem_statement,
+    )
 
-    model = LitellmModel(model_config)
-    env = DockerEnvironment(DockerEnvironmentConfig(**config.get("environment", {})))
-    agent = Agent(agent_config, model, env, problem_statement)
-
+    repo_url = issue_url.split("/issues/")[0]
     if github_token := os.getenv("GITHUB_TOKEN"):
         repo_url = repo_url.replace("https://github.com/", f"https://{github_token}@github.com/") + ".git"
 
     agent.env.execute(f"git clone {repo_url} /testbed", cwd="/")
 
-    result = agent.run()
-    print(f"\nFinal result: {result}")
-    print(f"Total cost: ${agent.model.cost:.4f}")
-    print(f"Total steps: {agent.model.n_calls}")
-
-    print("Saving output files")
-    Path("patch.txt").write_text(result)
-    Path("traj.json").write_text(
-        json.dumps(agent.history, indent=2),
-    )
+    try:
+        result = agent.run()
+    except KeyboardInterrupt:
+        console.print("\n[bold red]KeyboardInterrupt -- goodbye[/bold red]")
+    else:
+        console.print(f"\nFinal result: {result}")
+        Path("patch.txt").write_text(result)
+    finally:
+        Path("traj.json").write_text(
+            json.dumps(agent.history, indent=2),
+        )
+        console.print(f"Total cost: [bold green]${agent.model.cost:.4f}[/bold green]")
+        console.print(f"Total steps: [bold green]{agent.model.n_calls}[/bold green]")
     return agent
-
-
-@app.command()
-def main(
-    issue_url: str = typer.Option(prompt="Enter GitHub issue URL", help="GitHub issue URL"),
-    model: str | None = typer.Option(None, "--model", help="Model to use"),
-) -> Agent:
-    """Run nano-SWE-agent on a GitHub issue"""
-    repo_url = issue_url.split("/issues/")[0]
-    return run_github_issue(issue_url, repo_url, model)
 
 
 if __name__ == "__main__":

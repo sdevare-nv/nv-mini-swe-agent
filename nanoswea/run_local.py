@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 from pathlib import Path
 
 import typer
@@ -11,6 +12,7 @@ from nanoswea.agent import Agent, AgentConfig
 from nanoswea.environment import LocalEnvironment, LocalEnvironmentConfig
 from nanoswea.model import LitellmModel, ModelConfig
 
+DEFAULT_CONFIG = Path(os.getenv("NSWEA_LOCAL_CONFIG_PATH", package_dir / "config" / "local.yaml"))
 console = Console(highlight=False)
 app = typer.Typer()
 
@@ -29,19 +31,36 @@ def get_multiline_problem_statement() -> str:
 
     return "\n".join(lines).strip()
 
+@app.command()
+def main(
+    config: str = typer.Option(str(DEFAULT_CONFIG), "--config", help="Path to config file"),
+    model: str | None = typer.Option(
+        None,
+        "--model",
+        help="Model to use",
+    ),
+    problem: str | None = typer.Option(None, "--problem", help="Problem statement", show_default=False),
+    yolo: bool = typer.Option(False, "--yolo", help="Run without confirmation"),
+) -> Agent:
+    """Run nano-SWE-agent right here, right now."""
+    _config = yaml.safe_load(Path(config).read_text())
+    _model = _config.get("model", {}).get("model_name")
+    if model:
+        _model = model
+    if not _model:
+        _model = os.getenv("NSWEA_MODEL_NAME")
+    if not _model:
+        _model = console.input("[bold yellow]Enter your model name: [/bold yellow]")
 
-def run_local(problem_statement: str, config_path: str, model_name: str | None = None, yolo: bool = False) -> Agent:
-    """Run the agent locally in the current directory."""
-    config = yaml.safe_load(Path(config_path).read_text())
-    agent_config = AgentConfig(**(config["agent"] | {"confirm_actions": not yolo}))
+    if not problem:
+        problem = get_multiline_problem_statement()
 
-    if model_name:
-        config["model"]["model_name"] = model_name
-    model_config = ModelConfig(**config["model"])
-
-    model = LitellmModel(model_config)
-    env = LocalEnvironment(LocalEnvironmentConfig())
-    agent = Agent(agent_config, model, env, problem_statement)
+    agent = Agent(
+        AgentConfig(**(_config["agent"] | {"confirm_actions": not yolo})),
+        LitellmModel(ModelConfig(**(_config["model"] | {"model_name": _model}))),
+        LocalEnvironment(LocalEnvironmentConfig()),
+        problem,
+    )
 
     try:
         result = agent.run()
@@ -56,21 +75,6 @@ def run_local(problem_statement: str, config_path: str, model_name: str | None =
         console.print(f"Total cost: [bold green]${agent.model.cost:.4f}[/bold green]")
         console.print(f"Total steps: [bold green]{agent.model.n_calls}[/bold green]")
     return agent
-
-
-@app.command()
-def main(
-    config: str = typer.Option(str(package_dir / "config" / "local.yaml"), "--config", help="Path to config file"),
-    model: str | None = typer.Option(None, "--model", help="Model to use", show_default=False),
-    problem: str | None = typer.Option(None, "--problem", help="Problem statement", show_default=False),
-    yolo: bool = typer.Option(False, "--yolo", help="Run without confirmation"),
-) -> Agent:
-    """Run nano-SWE-agent right here, right now."""
-    problem_statement = problem
-    if not problem_statement:
-        problem_statement = get_multiline_problem_statement()
-
-    return run_local(problem_statement, config, model, yolo)
 
 
 if __name__ == "__main__":
