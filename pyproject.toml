@@ -38,6 +38,7 @@ dependencies = [
     "datasets",
     "rich",
     "python-dotenv",
+    "typer",
 ]
 
 [project.optional-dependencies]
@@ -49,8 +50,8 @@ dev = [
 ]
 
 [project.scripts]
-nswea-gh= "nanoswea.run_github_issue:run_from_cli"
-nswea = "nanoswea.run_local:run_from_cli"
+nswea-gh= "nanoswea.run_github_issue:app"
+nswea = "nanoswea.run_local:app"
 nano-swe-agent = "nanoswea.__main__:main"
 
 [tool.setuptools]

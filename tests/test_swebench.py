@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from nanoswea import package_dir
 from nanoswea.extra.model.test_models import DeterministicModel
-from nanoswea.extra.run.run_swebench import run_from_cli
+from nanoswea.extra.run.run_swebench import main
 
 
 def test_swebench_end_to_end(test_data, tmp_path):
@@ -15,7 +15,7 @@ def test_swebench_end_to_end(test_data, tmp_path):
     with patch("nanoswea.extra.run.run_swebench.LitellmModel") as mock_model_class:
         mock_model_class.return_value = DeterministicModel(model_responses)
 
-        run_from_cli(["--subset", "_test", "--split", "test", "--slice", "0:1", "--output", str(output_file)])
+        main(subset="_test", split="test", slice_spec="0:1", output=str(output_file))
 
     # Extract the last observation from github_issue.traj.json
     traj_file_path = package_dir.parent / "tests" / "test_data" / "github_issue.traj.json"

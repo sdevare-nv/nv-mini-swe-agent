@@ -3,8 +3,8 @@
 
 import sys
 
-from nanoswea.run_github_issue import run_from_cli as run_github_from_cli
-from nanoswea.run_local import run_from_cli as run_local_from_cli
+from nanoswea.run_github_issue import app as github_app
+from nanoswea.run_local import app as local_app
 
 
 def main() -> None:
@@ -12,9 +12,13 @@ def main() -> None:
     args = sys.argv[1:]
 
     if len(args) > 0 and args[0] == "gh":
-        run_github_from_cli(args[1:])
+        # Remove "gh" from args and run GitHub issue CLI
+        sys.argv = sys.argv[:1] + args[1:]  # Keep script name, remove "gh"
+        github_app()
     else:
-        run_local_from_cli(args)
+        # Run local CLI with all args
+        sys.argv = sys.argv[:1] + args  # Keep script name, pass all args
+        local_app()
 
 
 if __name__ == "__main__":

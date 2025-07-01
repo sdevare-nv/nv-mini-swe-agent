@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-import argparse
 import json
 from pathlib import Path
+from typing import Literal
 
+import typer
 import yaml
 from datasets import load_dataset
 
@@ -10,6 +11,8 @@ from nanoswea import package_dir
 from nanoswea.agent import Agent, AgentConfig
 from nanoswea.environment import DockerEnvironment, DockerEnvironmentConfig
 from nanoswea.model import LitellmModel, ModelConfig
+
+app = typer.Typer()
 
 DATASET_MAPPING = {
     "full": "princeton-nlp/SWE-Bench",
@@ -126,22 +129,18 @@ def run_swebench(subset: str = "lite", split: str = "dev", slice_spec: str = "",
     process_instances(agent_config, model_config, instances, output_path)
 
 
-def run_from_cli(cli_args: list[str] | None = None):
-    """Run from command line interface with optional argument override."""
-    parser = argparse.ArgumentParser(description="Run nano-SWE-agent on SWEBench instances")
-    parser.add_argument(
-        "--subset",
-        choices=list(DATASET_MAPPING.keys()),
-        default="lite",
-        help="SWEBench subset to use",
-    )
-    parser.add_argument("--split", choices=["dev", "test"], default="dev", help="Dataset split")
-    parser.add_argument("--slice", default="", help="Slice specification (e.g., '0:5' for first 5 instances)")
-    parser.add_argument("-o", "--output", default="results.json", help="Output JSON file path")
-
-    args = parser.parse_args(args=cli_args)
-    run_swebench(subset=args.subset, split=args.split, slice_spec=args.slice, output=args.output)
+@app.command()
+def main(
+    subset: Literal["full", "verified", "lite", "multimodal", "multilingual", "_test"] = typer.Option(
+        "lite", "--subset", help="SWEBench subset to use"
+    ),
+    split: Literal["dev", "test"] = typer.Option("dev", "--split", help="Dataset split"),
+    slice_spec: str = typer.Option("", "--slice", help="Slice specification (e.g., '0:5' for first 5 instances)"),
+    output: str = typer.Option("results.json", "-o", "--output", help="Output JSON file path"),
+) -> None:
+    """Run nano-SWE-agent on SWEBench instances"""
+    run_swebench(subset=subset, split=split, slice_spec=slice_spec, output=output)
 
 
 if __name__ == "__main__":
-    run_from_cli()
+    app()

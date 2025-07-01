@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-import argparse
 import json
 import os
 from pathlib import Path
 
 import requests
+import typer
 import yaml
 
 from nanoswea import package_dir
 from nanoswea.agent import Agent, AgentConfig
 from nanoswea.environment import DockerEnvironment, DockerEnvironmentConfig
 from nanoswea.model import LitellmModel, ModelConfig
+
+app = typer.Typer()
 
 
 def fetch_github_issue(issue_url: str) -> str:
@@ -62,15 +64,15 @@ def run_github_issue(issue_url: str, repo_url: str, model_name: str | None = Non
     return agent
 
 
-def run_from_cli(cli_args: list[str] | None = None) -> Agent:
-    parser = argparse.ArgumentParser(description="Run nano-SWE-agent on a GitHub issue")
-    parser.add_argument("issue_url", help="GitHub issue URL")
-    parser.add_argument("--model", help="Model to use")
-
-    args = parser.parse_args(args=cli_args)
-    repo_url = args.issue_url.split("/issues/")[0]
-    return run_github_issue(args.issue_url, repo_url, args.model)
+@app.command()
+def main(
+    issue_url: str = typer.Option(prompt="Enter GitHub issue URL", help="GitHub issue URL"),
+    model: str | None = typer.Option(None, "--model", help="Model to use"),
+) -> Agent:
+    """Run nano-SWE-agent on a GitHub issue"""
+    repo_url = issue_url.split("/issues/")[0]
+    return run_github_issue(issue_url, repo_url, model)
 
 
 if __name__ == "__main__":
-    run_from_cli()
+    app()

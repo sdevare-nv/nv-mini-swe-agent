@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-import argparse
 import json
 from pathlib import Path
 
+import typer
 import yaml
 from rich.console import Console
 
@@ -12,11 +12,14 @@ from nanoswea.environment import LocalEnvironment, LocalEnvironmentConfig
 from nanoswea.model import LitellmModel, ModelConfig
 
 console = Console(highlight=False)
+app = typer.Typer()
 
 
 def get_multiline_problem_statement() -> str:
     """Get a multiline problem statement from the user."""
-    console.print("\nWhat do you want to do? (press Ctrl+D to finish):")
+    console.print(
+        "[bold yellow]What do you want to do?[/bold yellow] (press [bold red]Ctrl+D[/bold red] in a [red]new line[/red] to finish)"
+    )
     lines = []
     while True:
         try:
@@ -56,21 +59,20 @@ def run_local(problem_statement: str, config_path: str, model_name: str | None =
     return agent
 
 
-def run_from_cli(cli_args: list[str] | None = None) -> Agent:
-    parser = argparse.ArgumentParser(description="Run nano-SWE-agent locally")
-    parser.add_argument("--config", help="Path to config file", default=package_dir / "config" / "local.yaml")
-    parser.add_argument("--model", help="Model to use (overrides config)")
-    parser.add_argument("--problem", help="Problem statement")
-    parser.add_argument("--yolo", help="Run without confirmation", action="store_true")
-
-    args = parser.parse_args(args=cli_args)
-
-    problem_statement = args.problem
+@app.command()
+def main(
+    config: str = typer.Option(str(package_dir / "config" / "local.yaml"), "--config", help="Path to config file"),
+    model: str | None = typer.Option(None, "--model", help="Model to use", show_default=False),
+    problem: str | None = typer.Option(None, "--problem", help="Problem statement", show_default=False),
+    yolo: bool = typer.Option(False, "--yolo", help="Run without confirmation"),
+) -> Agent:
+    """Run nano-SWE-agent right here, right now."""
+    problem_statement = problem
     if not problem_statement:
         problem_statement = get_multiline_problem_statement()
 
-    return run_local(problem_statement, args.config, args.model, args.yolo)
+    return run_local(problem_statement, config, model, yolo)
 
 
 if __name__ == "__main__":
-    run_from_cli()
+    app()
