@@ -19,4 +19,5 @@ agent:
 model:
   model_name: "claude-sonnet-4-20250514"
 
-image: "python:3.11"
+environment:
+  image: "python:3.11"

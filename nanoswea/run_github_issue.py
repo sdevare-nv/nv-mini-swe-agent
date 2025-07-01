@@ -32,7 +32,7 @@ def run_github_issue(issue_url: str, repo_url: str) -> Agent:
     model_config = ModelConfig(**config["model"])
 
     model = LitellmModel(model_config)
-    env = DockerEnvironment(config["image"])
+    env = DockerEnvironment(config.get("environment", {}).get("image", "python:3.11"))
     agent = Agent(agent_config, model, env, problem_statement)
 
     print(f"Cloning {repo_url} to /testbed...")
