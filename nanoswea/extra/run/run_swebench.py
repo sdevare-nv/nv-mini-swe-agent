@@ -18,6 +18,7 @@ DATASET_MAPPING = {
     "lite": "princeton-nlp/SWE-Bench_Lite",
     "multimodal": "princeton-nlp/SWE-Bench_Multimodal",
     "multilingual": "swe-bench/SWE-Bench_Multilingual",
+    "_test": "klieret/swe-bench-dummy-test-dataset",
 }
 
 
@@ -100,33 +101,23 @@ def process_instances(agent_config: AgentConfig, model_config: ModelConfig, inst
         print(f"\nRunning total - Instances: {i + 1}/{len(instances)}, Cost: ${running_cost:.4f}")
 
 
-def parse_args():
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="Run nano-SWE-agent on SWEBench instances")
-    parser.add_argument(
-        "--subset",
-        choices=["lite", "verified", "full", "multimodal", "multilingual"],
-        default="lite",
-        help="SWEBench subset to use",
-    )
-    parser.add_argument("--split", choices=["dev", "test"], default="dev", help="Dataset split")
-    parser.add_argument("--slice", default="", help="Slice specification (e.g., '0:5' for first 5 instances)")
-    parser.add_argument("-o", "--output", default="results.json", help="Output JSON file path")
+def run_swebench(subset: str = "lite", split: str = "dev", slice_spec: str = "", output: str = "results.json"):
+    """Run nano-SWE-agent on SWEBench instances.
 
-    return parser.parse_args()
-
-
-def main():
-    args = parse_args()
-
+    Args:
+        subset: SWEBench subset to use ("lite", "verified", "full", "multimodal", "multilingual")
+        split: Dataset split ("dev" or "test")
+        slice_spec: Slice specification (e.g., "0:5" for first 5 instances)
+        output: Output JSON file path
+    """
     # Load dataset
-    dataset_path = DATASET_MAPPING[args.subset]
-    print(f"Loading dataset {dataset_path}, split {args.split}...")
-    instances = list(load_dataset(dataset_path, split=args.split))
+    dataset_path = DATASET_MAPPING[subset]
+    print(f"Loading dataset {dataset_path}, split {split}...")
+    instances = list(load_dataset(dataset_path, split=split))
 
     # Apply slice if specified
-    if args.slice:
-        values = [int(x) if x else None for x in args.slice.split(":")]
+    if slice_spec:
+        values = [int(x) if x else None for x in slice_spec.split(":")]
         instances = instances[slice(*values)]
 
     # Load agent configuration
@@ -134,12 +125,29 @@ def main():
     agent_config = AgentConfig(**config["agent"])
     model_config = ModelConfig(**config["model"])
 
-    output_path = Path(args.output)
+    output_path = Path(output)
     print(f"Running on {len(instances)} instances...")
     print(f"Results will be saved to {output_path}")
 
     process_instances(agent_config, model_config, instances, output_path)
 
 
+def run_from_cli(cli_args: list[str] | None = None):
+    """Run from command line interface with optional argument override."""
+    parser = argparse.ArgumentParser(description="Run nano-SWE-agent on SWEBench instances")
+    parser.add_argument(
+        "--subset",
+        choices=list(DATASET_MAPPING.keys()),
+        default="lite",
+        help="SWEBench subset to use",
+    )
+    parser.add_argument("--split", choices=["dev", "test"], default="dev", help="Dataset split")
+    parser.add_argument("--slice", default="", help="Slice specification (e.g., '0:5' for first 5 instances)")
+    parser.add_argument("-o", "--output", default="results.json", help="Output JSON file path")
+
+    args = parser.parse_args(args=cli_args)
+    run_swebench(subset=args.subset, split=args.split, slice_spec=args.slice, output=args.output)
+
+
 if __name__ == "__main__":
-    main()
+    run_from_cli()

@@ -14,4 +14,4 @@ alwaysApply: true
 - Do not append to the README unless specifically requested
 - Use jinja for formatting templates
 - Use pydantic for keeping track config
-- Use pytest, not unittest
+- Use pytest, not unittest. <IMPORTANT>Do not mock/patch anything that you're not explicitly asked to do</IMPORTANT>

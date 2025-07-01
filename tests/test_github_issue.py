@@ -1,13 +1,4 @@
-#!/usr/bin/env python3
-import sys
-from pathlib import Path
 from unittest.mock import patch
-
-import pytest
-import yaml
-
-# Add the parent directory to the path so we can import from nanoswea
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from nanoswea.agent import Agent
 from nanoswea.extra.model.test_models import DeterministicModel
@@ -47,34 +38,19 @@ def assert_observations_match(expected_observations: list[str], history: list[di
         )
 
 
-@pytest.fixture
-def test_data():
-    """Load test fixtures with the expected model responses from YAML file"""
-    yaml_path = Path(__file__).parent / "test_data" / "github_issue_test_data.yaml"
-    with yaml_path.open() as f:
-        return yaml.safe_load(f)
-
-
 def test_github_issue_end_to_end(test_data):
     """Test the complete flow from CLI to final result using real environment but deterministic model"""
 
     model_responses = test_data["model_responses"]
     expected_observations = test_data["expected_observations"]
 
-    # Create deterministic model with the test responses
     deterministic_model = DeterministicModel(model_responses)
-
-    # Track the agent instance
     captured_agent = None
-
-    # Store the original Agent __init__ method
     original_agent_init = Agent.__init__
 
     def capture_agent_init(self, *args, **kwargs):
         nonlocal captured_agent
-        # Call the original __init__
         original_agent_init(self, *args, **kwargs)
-        # Capture this agent instance
         captured_agent = self
 
     # Patch the Agent constructor and the model
