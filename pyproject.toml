@@ -49,8 +49,9 @@ dev = [
 ]
 
 [project.scripts]
-nanoswea-github = "nanoswea.run_github_issue:main"
-nanoswea-swebench = "nanoswea.run_swebench:main"
+nswea-gh= "nanoswea.run_github_issue:run_from_cli"
+nswea = "nanoswea.run_local:run_from_cli"
+nano-swe-agent = "nanoswea.__main__:main"
 
 [tool.setuptools]
 include-package-data = true
