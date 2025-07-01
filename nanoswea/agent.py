@@ -48,9 +48,9 @@ class Agent:
             response: Model reponse (if any)
             observation: The observation or error message
         """
-        if self.model.n_calls >= self.config.step_limit:
+        if 0 < self.config.step_limit <= self.model.n_calls:
             return True, "", "step_limit_exceeded"
-        if self.model.cost >= self.config.cost_limit:
+        if 0 < self.config.cost_limit <= self.model.cost:
             return True, "", "cost_limit_exceeded"
         message = self.model.query(self.history)
         assert isinstance(message, str)
