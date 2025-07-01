@@ -1,7 +1,7 @@
 """Nano SWE Agent - A simple AI software engineering agent."""
 
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, TypedDict
 
 import dotenv
 
@@ -25,7 +25,7 @@ class Model(Protocol):
 class Environment(Protocol):
     """Protocol for execution environments."""
 
-    def execute(self, command: str, cwd: str = "/testbed") -> str:
+    def execute(self, command: str, cwd: str = "/testbed") -> dict[str, str]:
         """Execute a command in the environment and return the raw output."""
         ...
 

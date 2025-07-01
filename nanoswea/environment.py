@@ -8,17 +8,18 @@ class LocalEnvironment:
         """This class executes bash commands directly on the local machine."""
         pass
 
-    def execute(self, command: str, cwd: str = "/testbed") -> str:
-        """Execute a command in the local environment and return the raw output."""
-        result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            cwd=cwd,
-            timeout=30,
+    def execute(self, command: str, cwd: str = "/testbed"):
+        """Execute a command in the local environment and return the result as a dict."""
+        return vars(
+            subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                cwd=cwd,
+                timeout=30,
+            )
         )
-        return f"<stdout>\n{result.stdout}\n</stdout>\n<stderr>\n{result.stderr}\n</stderr>\n<exit_code>\n{result.returncode}\n</exit_code>"
 
 
 class DockerEnvironment:
@@ -53,19 +54,20 @@ class DockerEnvironment:
         print(f"Started container {container_name} with ID {result.stdout.strip()}")
         self.container_id = result.stdout.strip()
 
-    def execute(self, command: str, cwd: str = "/testbed") -> str:
-        """Execute a command in the Docker container and return the raw output."""
+    def execute(self, command: str, cwd: str = "/testbed"):
+        """Execute a command in the Docker container and return the result as a dict."""
         if not self.container_id:
             msg = "Container not started"
             raise RuntimeError(msg)
 
-        result = subprocess.run(
-            ["docker", "exec", "-w", cwd, self.container_id, "bash", "-c", command],
-            capture_output=True,
-            text=True,
-            timeout=30,
+        return vars(
+            subprocess.run(
+                ["docker", "exec", "-w", cwd, self.container_id, "bash", "-c", command],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
         )
-        return f"<stdout>\n{result.stdout}\n</stdout>\n<stderr>\n{result.stderr}\n</stderr>\n<exit_code>\n{result.returncode}\n</exit_code>"
 
     def cleanup(self):
         """Stop and remove the Docker container."""

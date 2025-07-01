@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import os
 from pathlib import Path
 
@@ -35,7 +36,9 @@ def run_github_issue(issue_url: str, repo_url: str, model_name: str | None = Non
 
     config = yaml.safe_load((package_dir / "config" / "github_issue.yaml").read_text())
     agent_config = AgentConfig(**config["agent"])
-    model_config = ModelConfig(**(config["model"] | {"name": model_name}))
+    if model_name:
+        config["model"]["model_name"] = model_name
+    model_config = ModelConfig(**config["model"])
 
     model = LitellmModel(model_config)
     env = DockerEnvironment(config.get("environment", {}).get("image", "python:3.11"))
@@ -51,8 +54,11 @@ def run_github_issue(issue_url: str, repo_url: str, model_name: str | None = Non
     print(f"Total cost: ${agent.model.cost:.4f}")
     print(f"Total steps: {agent.model.n_calls}")
 
-    print("Saving patch to patch.txt...")
+    print("Saving output files")
     Path("patch.txt").write_text(result)
+    Path("traj.json").write_text(
+        json.dumps(agent.history, indent=2),
+    )
     return agent
 
 

@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 
 from nanoswea import package_dir
@@ -16,5 +17,25 @@ def test_swebench_end_to_end(test_data, tmp_path):
 
         run_from_cli(["--subset", "_test", "--split", "test", "--slice", "0:1", "--output", str(output_file)])
 
-    expected_output_path = package_dir.parent / "tests" / "test_data" / "results.json"
-    assert expected_output_path.read_text() == output_file.read_text()
+    # Extract the last observation from github_issue.traj.json
+    traj_file_path = package_dir.parent / "tests" / "test_data" / "github_issue.traj.json"
+    with open(traj_file_path) as f:
+        trajectory = json.load(f)
+
+    # Get the last message content as the model patch
+    last_message = trajectory[-1]["content"]
+
+    # Expected format
+    expected_result = {
+        "swe-agent__test-repo-1": {
+            "model_name_or_path": "claude-sonnet-4-20250514",
+            "instance_id": "swe-agent__test-repo-1",
+            "model_patch": last_message,
+        }
+    }
+
+    # Load and check actual results
+    with open(output_file) as f:
+        actual_result = json.load(f)
+
+    assert actual_result == expected_result

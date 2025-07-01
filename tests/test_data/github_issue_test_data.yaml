@@ -39,7 +39,7 @@ model_responses:
     Great! The syntax error has been fixed. The issue was that the function definition was missing a colon (`:`) at the end of line 4. I've added the missing colon and verified that the file now runs successfully without any syntax errors.
 
     ```bash
-    submit
+    echo NANO_SWE_AGENT_FINAL_OUTPUT && git add -A && git diff --cached
     ```
 
 expected_observations:

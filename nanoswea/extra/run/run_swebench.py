@@ -57,13 +57,7 @@ def process_instance(instance: dict, agent_config: AgentConfig, model_config: Mo
     model = LitellmModel(model_config)
     env = DockerEnvironment(image_name)
     agent = Agent(agent_config, model, env, problem_statement)
-    raw_result = agent.run()
-
-    # Extract only stdout content from the result (assuming exactly one match)
-    try:
-        result = re.search(r"<stdout>(.*?)</stdout>", raw_result, re.DOTALL).group(1).strip()  # type: ignore
-    except (AttributeError, ValueError):
-        result = raw_result
+    result = agent.run()
 
     print(f"Instance {instance_id} completed")
     print(f"Cost: ${model.cost:.4f}")
