@@ -40,16 +40,19 @@ def run_local(problem_statement: str, config_path: str, model_name: str | None =
     env = LocalEnvironment(LocalEnvironmentConfig())
     agent = Agent(agent_config, model, env, problem_statement)
 
-    result = agent.run()
-    print(f"\nFinal result: {result}")
-    print(f"Total cost: ${agent.model.cost:.4f}")
-    print(f"Total steps: {agent.model.n_calls}")
-
-    print("Saving output files")
-    Path("patch.txt").write_text(result)
-    Path("traj.json").write_text(
-        json.dumps(agent.history, indent=2),
-    )
+    try:
+        result = agent.run()
+    except KeyboardInterrupt:
+        console.print("\n[bold red]KeyboardInterrupt -- goodbye[/bold red]")
+    else:
+        Path("patch.txt").write_text(result)
+    finally:
+        Path("traj.json").write_text(
+            json.dumps(agent.history, indent=2),
+        )
+        print(f"\nFinal result: {result}")
+        print(f"Total cost: ${agent.model.cost:.4f}")
+        print(f"Total steps: {agent.model.n_calls}")
     return agent
 
 
