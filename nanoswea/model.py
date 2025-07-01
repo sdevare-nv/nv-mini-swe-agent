@@ -1,13 +1,14 @@
+from dataclasses import dataclass, field
 from typing import Any
 
 import litellm
-from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 
-class ModelConfig(BaseModel):
+@dataclass
+class ModelConfig:
     model_name: str
-    model_kwargs: dict[str, Any] = {}
+    model_kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 class LitellmModel:

@@ -34,7 +34,6 @@ dependencies = [
     "requests",
     "jinja2",
     "litellm",
-    "pydantic>=2",
     "tenacity",
     "datasets",
     "rich",

@@ -1,14 +1,15 @@
 import re
 import subprocess
+from dataclasses import dataclass
 
 from jinja2 import Template
-from pydantic import BaseModel
 from rich.console import Console
 
 from nanoswea import Environment, Model
 
 
-class AgentConfig(BaseModel):
+@dataclass
+class AgentConfig:
     system_template: str
     instance_template: str
     step_limit: int = 0
