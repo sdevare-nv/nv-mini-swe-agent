@@ -53,9 +53,8 @@ def run_local(problem_statement: str, config_path: str, model_name: str | None =
         Path("traj.json").write_text(
             json.dumps(agent.history, indent=2),
         )
-        print(f"\nFinal result: {result}")
-        print(f"Total cost: ${agent.model.cost:.4f}")
-        print(f"Total steps: {agent.model.n_calls}")
+        console.print(f"Total cost: [bold green]${agent.model.cost:.4f}[/bold green]")
+        console.print(f"Total steps: [bold green]{agent.model.n_calls}[/bold green]")
     return agent
 
 
