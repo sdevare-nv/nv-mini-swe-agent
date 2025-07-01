@@ -63,24 +63,17 @@ def process_instance(instance: dict, agent_config: AgentConfig, model_config: Mo
     except (AttributeError, ValueError):
         result = raw_result
 
-    # Capture cost and steps before resetting
-    instance_cost = agent.model.cost
-    instance_steps = agent.model.n_calls
-
-    # Reset model cost for next instance
-    agent.model.cost = 0.0
-
     print(f"Instance {instance_id} completed")
-    print(f"Cost: ${instance_cost:.4f}")
-    print(f"Steps: {instance_steps}")
+    print(f"Cost: ${model.cost:.4f}")
+    print(f"Steps: {model.n_calls}")
 
     update_output_file(output_path, instance_id, model_config, result)
 
     return {
         "instance_id": instance_id,
         "result": result,
-        "cost": instance_cost,
-        "steps": instance_steps,
+        "cost": model.cost,
+        "steps": model.n_calls,
     }
 
 
