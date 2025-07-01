@@ -24,14 +24,8 @@ def fetch_github_issue(issue_url: str) -> str:
     return f"GitHub Issue: {title}\n\n{body}"
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Run nano-SWE-agent on a GitHub issue")
-    parser.add_argument("issue_url", help="GitHub issue URL")
-
-    args = parser.parse_args()
-
-    repo_url = args.issue_url.split("/issues/")[0]
-    problem_statement = fetch_github_issue(args.issue_url)
+def run_github_issue(issue_url: str, repo_url: str) -> Agent:
+    problem_statement = fetch_github_issue(issue_url)
 
     config = yaml.safe_load((Path(__file__).parent / "config" / "github_issue.yaml").read_text())
     agent_config = AgentConfig(**config["agent"])
@@ -47,11 +41,21 @@ def main():
     result = agent.run()
     print(f"\nFinal result: {result}")
     print(f"Total cost: ${agent.model.cost:.4f}")
-    print(f"Total steps: {agent.n_steps}")
+    print(f"Total steps: {agent.model.n_calls}")
 
     print("Saving patch to patch.txt...")
     Path("patch.txt").write_text(result)
+    return agent
+
+
+def run_from_cli(cli_args: list[str] | None = None):
+    parser = argparse.ArgumentParser(description="Run nano-SWE-agent on a GitHub issue")
+    parser.add_argument("issue_url", help="GitHub issue URL")
+
+    args = parser.parse_args(args=cli_args)
+    repo_url = args.issue_url.split("/issues/")[0]
+    run_github_issue(args.issue_url, repo_url)
 
 
 if __name__ == "__main__":
-    main()
+    run_from_cli()

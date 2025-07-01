@@ -7,6 +7,7 @@ class Model(Protocol):
     """Protocol for language models."""
 
     cost: float
+    n_calls: int
 
     def query(self, messages: list[dict[str, str]]) -> str:
         """Query the model with a list of messages and return the response."""

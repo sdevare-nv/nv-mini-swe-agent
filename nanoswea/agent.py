@@ -30,10 +30,6 @@ class Agent:
         self.model = model
         self.env = env
 
-    @property
-    def n_steps(self) -> int:
-        return (len(self.history) - 2) // 2 + 1
-
     def run(self) -> str:
         """Run the agent and return the final observation.
         Essentially just calls `step` until the agent is finished.
@@ -51,13 +47,13 @@ class Agent:
             response: Model reponse (if any)
             observation: The observation or error message
         """
-        if self.n_steps >= self.config.step_limit:
+        if self.model.n_calls >= self.config.step_limit:
             return True, "", "step_limit_exceeded"
         if self.model.cost >= self.config.cost_limit:
             return True, "", "cost_limit_exceeded"
         message = self.model.query(self.history)
         assert isinstance(message, str)
-        console.print(f"[bold red]Assistant (step {self.n_steps}):[/bold red]\n{message}")
+        console.print(f"[bold red]Assistant (step {self.model.n_calls}):[/bold red]\n{message}")
         self.history.append({"role": "assistant", "content": message})
         action = self.parse_action(message)
         is_done = False
@@ -68,7 +64,7 @@ class Agent:
         else:
             observation = "Please always provide exactly one action in triple backticks."
         self.history.append({"role": "user", "content": observation})
-        console.print(f"[bold green]User (step {self.n_steps}):[/bold green]\n{observation}")
+        console.print(f"[bold green]User (step {self.model.n_calls}):[/bold green]\n{observation}")
         return is_done, message, observation
 
     @staticmethod

@@ -65,7 +65,7 @@ def process_instance(instance: dict, agent_config: AgentConfig, model_config: Mo
 
     # Capture cost and steps before resetting
     instance_cost = agent.model.cost
-    instance_steps = agent.n_steps
+    instance_steps = agent.model.n_calls
 
     # Reset model cost for next instance
     agent.model.cost = 0.0

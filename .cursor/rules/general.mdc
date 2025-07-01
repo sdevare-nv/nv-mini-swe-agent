@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: true
 ---
 
@@ -14,3 +14,4 @@ alwaysApply: true
 - Do not append to the README unless specifically requested
 - Use jinja for formatting templates
 - Use pydantic for keeping track config
+- Use pytest, not unittest
