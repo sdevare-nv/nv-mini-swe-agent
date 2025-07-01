@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import json
-import re
 from pathlib import Path
 
 import yaml
@@ -9,7 +8,7 @@ from datasets import load_dataset
 
 from nanoswea import package_dir
 from nanoswea.agent import Agent, AgentConfig
-from nanoswea.environment import DockerEnvironment
+from nanoswea.environment import DockerEnvironment, DockerEnvironmentConfig
 from nanoswea.model import LitellmModel, ModelConfig
 
 DATASET_MAPPING = {
@@ -55,15 +54,18 @@ def process_instance(instance: dict, agent_config: AgentConfig, model_config: Mo
     image_name = get_image_name(instance)
 
     model = LitellmModel(model_config)
-    env = DockerEnvironment(image_name)
+    env = DockerEnvironment(DockerEnvironmentConfig(image=image_name))
     agent = Agent(agent_config, model, env, problem_statement)
-    result = agent.run()
+
+    try:
+        result = agent.run()
+    finally:
+        update_output_file(output_path, instance_id, model_config, result)
 
     print(f"Instance {instance_id} completed")
     print(f"Cost: ${model.cost:.4f}")
     print(f"Steps: {model.n_calls}")
 
-    update_output_file(output_path, instance_id, model_config, result)
 
     return {
         "instance_id": instance_id,
@@ -80,11 +82,9 @@ def process_instances(agent_config: AgentConfig, model_config: ModelConfig, inst
 
     for i, instance in enumerate(instances):
         instance_id = instance["instance_id"]
-        image_name = get_image_name(instance)
 
         print(f"\n{'=' * 60}")
         print(f"Running instance {i + 1}/{len(instances)}: {instance_id}")
-        print(f"Image: {image_name}")
         print(f"{'=' * 60}")
 
         result = process_instance(instance, agent_config, model_config, output_path)

@@ -9,7 +9,7 @@ import yaml
 
 from nanoswea import package_dir
 from nanoswea.agent import Agent, AgentConfig
-from nanoswea.environment import DockerEnvironment
+from nanoswea.environment import DockerEnvironment, DockerEnvironmentConfig
 from nanoswea.model import LitellmModel, ModelConfig
 
 
@@ -41,7 +41,7 @@ def run_github_issue(issue_url: str, repo_url: str, model_name: str | None = Non
     model_config = ModelConfig(**config["model"])
 
     model = LitellmModel(model_config)
-    env = DockerEnvironment(config.get("environment", {}).get("image", "python:3.11"))
+    env = DockerEnvironment(DockerEnvironmentConfig(**config.get("environment", {})))
     agent = Agent(agent_config, model, env, problem_statement)
 
     if github_token := os.getenv("GITHUB_TOKEN"):
