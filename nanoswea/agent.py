@@ -56,7 +56,7 @@ class Agent:
             return True, "", "cost_limit_exceeded"
         message = self.model.query(self.history)
         assert isinstance(message, str)
-        console.print(f"[bold red]Assistant (step {self.model.n_calls}):[/bold red]\n{message}")
+        console.print(f"[bold red]Assistant (step {self.model.n_calls}, ${self.model.cost:.2f}):[/bold red]\n{message}")
         self.history.append({"role": "assistant", "content": message})
         action = self.parse_action(message)
         is_finished, observation = self.execute_action(action)
@@ -84,15 +84,8 @@ class Agent:
         """
         if not action:
             return False, "Please always provide exactly one action in triple backticks."
-        if self.config.confirm_actions:
-            response = Prompt.ask(
-                "[bold yellow]Execute?[/bold yellow] ([green][bold]Enter[/bold] to confirm[/green], or enter rejection message)"
-            )
-            if response:
-                return (
-                    False,
-                    f"Command not executed. The user rejected your command with the following message: {response}",
-                )
+        if rejection_message := self.reject_action(action):
+            return False, rejection_message
         try:
             output = self.env.execute(action)
         except (TimeoutError, subprocess.TimeoutExpired):
@@ -102,3 +95,11 @@ class Agent:
         if output.get("stdout") and output["stdout"].splitlines()[0] == "NANO_SWE_AGENT_FINAL_OUTPUT":
             return True, "\n".join(output["stdout"].splitlines()[1:])
         return (False, "\n".join([f"<{key}>\n{value}\n</{key}>" for key, value in output.items()]))
+
+    def reject_action(self, action: str) -> str:
+        if self.config.confirm_actions:
+            if response := Prompt.ask(
+                "[bold yellow]Execute?[/bold yellow] ([green][bold]Enter[/bold] to confirm[/green], or enter rejection message)"
+            ):
+                return f"Command not executed. The user rejected your command with the following message: {response}"
+        return ""

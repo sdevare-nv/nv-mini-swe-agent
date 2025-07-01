@@ -16,7 +16,7 @@ console = Console(highlight=False)
 
 def get_multiline_problem_statement() -> str:
     """Get a multiline problem statement from the user."""
-    console.print("\nEnter your problem statement (press Ctrl+D to finish):")
+    console.print("\nWhat do you want to do? (press Ctrl+D to finish):")
     lines = []
     while True:
         try:
