@@ -30,12 +30,12 @@ def fetch_github_issue(issue_url: str) -> str:
     return f"GitHub Issue: {title}\n\n{body}"
 
 
-def run_github_issue(issue_url: str, repo_url: str) -> Agent:
+def run_github_issue(issue_url: str, repo_url: str, model_name: str | None = None) -> Agent:
     problem_statement = fetch_github_issue(issue_url)
 
     config = yaml.safe_load((package_dir / "config" / "github_issue.yaml").read_text())
     agent_config = AgentConfig(**config["agent"])
-    model_config = ModelConfig(**config["model"])
+    model_config = ModelConfig(**(config["model"] | {"name": model_name}))
 
     model = LitellmModel(model_config)
     env = DockerEnvironment(config.get("environment", {}).get("image", "python:3.11"))
@@ -56,13 +56,14 @@ def run_github_issue(issue_url: str, repo_url: str) -> Agent:
     return agent
 
 
-def run_from_cli(cli_args: list[str] | None = None):
+def run_from_cli(cli_args: list[str] | None = None) -> Agent:
     parser = argparse.ArgumentParser(description="Run nano-SWE-agent on a GitHub issue")
     parser.add_argument("issue_url", help="GitHub issue URL")
+    parser.add_argument("--model", help="Model to use")
 
     args = parser.parse_args(args=cli_args)
     repo_url = args.issue_url.split("/issues/")[0]
-    return run_github_issue(args.issue_url, repo_url)
+    return run_github_issue(args.issue_url, repo_url, args.model)
 
 
 if __name__ == "__main__":
