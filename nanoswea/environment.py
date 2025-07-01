@@ -1,15 +1,23 @@
+import os
 import shlex
 import subprocess
 import uuid
 
+from attr import dataclass
+
+
+@dataclass
+class LocalEnvironmentConfig: ...
+
 
 class LocalEnvironment:
-    def __init__(self):
+    def __init__(self, config: LocalEnvironmentConfig):
         """This class executes bash commands directly on the local machine."""
-        pass
+        self.config = config
 
-    def execute(self, command: str, cwd: str = "/testbed"):
+    def execute(self, command: str, cwd: str = ""):
         """Execute a command in the local environment and return the result as a dict."""
+        cwd = cwd or os.getcwd()
         return vars(
             subprocess.run(
                 command,
@@ -21,14 +29,20 @@ class LocalEnvironment:
             )
         )
 
+@dataclass
+class DockerEnvironmentConfig:
+    image: str
+    cwd: str = "/testbed"
+
 
 class DockerEnvironment:
-    def __init__(self, image: str):
+    def __init__(self, config: DockerEnvironmentConfig):
         """This class executes bash commands in a Docker container using direct docker commands."""
+        self.config = config
         self.container_id = None
-        self._start_container(image)
+        self._start_container()
 
-    def _start_container(self, image: str):
+    def _start_container(self):
         """Start the Docker container and return the container ID."""
         container_name = f"nanoswea-{uuid.uuid4().hex[:8]}"
         cmd = [
@@ -39,7 +53,7 @@ class DockerEnvironment:
             container_name,
             "-w",
             "/testbed",
-            image,
+            self.config.image,
             "sleep",
             "infinity",  # Keep container running
         ]
@@ -54,8 +68,9 @@ class DockerEnvironment:
         print(f"Started container {container_name} with ID {result.stdout.strip()}")
         self.container_id = result.stdout.strip()
 
-    def execute(self, command: str, cwd: str = "/testbed"):
+    def execute(self, command: str, cwd: str = ""):
         """Execute a command in the Docker container and return the result as a dict."""
+        cwd = cwd or self.config.cwd
         if not self.container_id:
             msg = "Container not started"
             raise RuntimeError(msg)

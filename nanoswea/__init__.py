@@ -25,7 +25,7 @@ class Model(Protocol):
 class Environment(Protocol):
     """Protocol for execution environments."""
 
-    def execute(self, command: str, cwd: str = "/testbed") -> dict[str, str]:
+    def execute(self, command: str, cwd: str = "") -> dict[str, str]:
         """Execute a command in the environment and return the raw output."""
         ...
 

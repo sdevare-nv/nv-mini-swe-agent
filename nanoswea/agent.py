@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from jinja2 import Template
 from rich.console import Console
+from rich.prompt import Prompt
 
 from nanoswea import Environment, Model
 
@@ -14,6 +15,7 @@ class AgentConfig:
     instance_template: str
     step_limit: int = 0
     cost_limit: float = 3.0
+    confirm_actions: bool = True
 
 console = Console(highlight=False)  # Print with colors
 
@@ -82,6 +84,15 @@ class Agent:
         """
         if not action:
             return False, "Please always provide exactly one action in triple backticks."
+        if self.config.confirm_actions:
+            response = Prompt.ask(
+                "[bold yellow]Execute?[/bold yellow] ([green][bold]Enter[/bold] to confirm[/green], or enter rejection message)"
+            )
+            if response:
+                return (
+                    False,
+                    f"Command not executed. The user rejected your command with the following message: {response}",
+                )
         try:
             output = self.env.execute(action)
         except (TimeoutError, subprocess.TimeoutExpired):
