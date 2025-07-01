@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import os
 from pathlib import Path
 
 import requests
@@ -15,7 +16,11 @@ def fetch_github_issue(issue_url: str) -> str:
     # Convert GitHub issue URL to API URL
     api_url = issue_url.replace("github.com", "api.github.com/repos").replace("/issues/", "/issues/")
 
-    response = requests.get(api_url)
+    headers = {}
+    if github_token := os.getenv("GITHUB_TOKEN"):
+        headers["Authorization"] = f"token {github_token}"
+
+    response = requests.get(api_url, headers=headers)
     issue_data = response.json()
 
     title = issue_data["title"]
@@ -35,7 +40,9 @@ def run_github_issue(issue_url: str, repo_url: str) -> Agent:
     env = DockerEnvironment(config.get("environment", {}).get("image", "python:3.11"))
     agent = Agent(agent_config, model, env, problem_statement)
 
-    print(f"Cloning {repo_url} to /testbed...")
+    if github_token := os.getenv("GITHUB_TOKEN"):
+        repo_url = repo_url.replace("https://github.com/", f"https://{github_token}@github.com/") + ".git"
+
     agent.env.execute(f"git clone {repo_url} /testbed", cwd="/")
 
     result = agent.run()
