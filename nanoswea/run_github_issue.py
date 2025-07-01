@@ -6,6 +6,7 @@ from pathlib import Path
 import requests
 import yaml
 
+from nanoswea import package_dir
 from nanoswea.agent import Agent, AgentConfig
 from nanoswea.environment import DockerEnvironment
 from nanoswea.model import LitellmModel, ModelConfig
@@ -32,7 +33,7 @@ def fetch_github_issue(issue_url: str) -> str:
 def run_github_issue(issue_url: str, repo_url: str) -> Agent:
     problem_statement = fetch_github_issue(issue_url)
 
-    config = yaml.safe_load((Path(__file__).parent / "config" / "github_issue.yaml").read_text())
+    config = yaml.safe_load((package_dir / "config" / "github_issue.yaml").read_text())
     agent_config = AgentConfig(**config["agent"])
     model_config = ModelConfig(**config["model"])
 

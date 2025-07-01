@@ -1,6 +1,9 @@
 """Nano SWE Agent - A simple AI software engineering agent."""
 
+from pathlib import Path
 from typing import Protocol
+
+package_dir = Path(__file__).resolve().parent
 
 
 class Model(Protocol):
@@ -20,3 +23,6 @@ class Environment(Protocol):
     def execute(self, command: str, cwd: str = "/testbed") -> str:
         """Execute a command in the environment and return the raw output."""
         ...
+
+
+__all__ = ["Model", "Environment", "package_dir"]
