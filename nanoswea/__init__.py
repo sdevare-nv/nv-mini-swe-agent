@@ -3,7 +3,12 @@
 from pathlib import Path
 from typing import Protocol
 
+import dotenv
+
 package_dir = Path(__file__).resolve().parent
+
+
+dotenv.load_dotenv(dotenv_path=package_dir.parent / ".env")
 
 
 class Model(Protocol):
