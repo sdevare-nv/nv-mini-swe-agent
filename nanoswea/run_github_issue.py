@@ -62,7 +62,7 @@ def run_from_cli(cli_args: list[str] | None = None):
 
     args = parser.parse_args(args=cli_args)
     repo_url = args.issue_url.split("/issues/")[0]
-    run_github_issue(args.issue_url, repo_url)
+    return run_github_issue(args.issue_url, repo_url)
 
 
 if __name__ == "__main__":

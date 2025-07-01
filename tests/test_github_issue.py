@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-from nanoswea.agent import Agent
 from nanoswea.extra.model.test_models import DeterministicModel
 from nanoswea.run_github_issue import run_from_cli
 
@@ -44,26 +43,15 @@ def test_github_issue_end_to_end(test_data):
     model_responses = test_data["model_responses"]
     expected_observations = test_data["expected_observations"]
 
-    deterministic_model = DeterministicModel(model_responses)
-    captured_agent = None
-    original_agent_init = Agent.__init__
+    # Patch the model and run the CLI
+    with patch("nanoswea.run_github_issue.LitellmModel") as mock_model_class:
+        mock_model_class.return_value = DeterministicModel(model_responses)
 
-    def capture_agent_init(self, *args, **kwargs):
-        nonlocal captured_agent
-        original_agent_init(self, *args, **kwargs)
-        captured_agent = self
+        # Run the CLI with the GitHub issue URL
+        github_url = "https://github.com/SWE-agent/test-repo/issues/1"
+        agent = run_from_cli([github_url])
 
-    # Patch the Agent constructor and the model
-    with patch.object(Agent, "__init__", capture_agent_init):
-        with patch("nanoswea.run_github_issue.LitellmModel") as mock_model_class:
-            mock_model_class.return_value = deterministic_model
-
-            # Run the CLI with the GitHub issue URL
-            github_url = "https://github.com/SWE-agent/test-repo/issues/1"
-            run_from_cli([github_url])
-
-    assert captured_agent is not None, "Agent should have been captured"
-    history = captured_agent.history
+    history = agent.history
 
     # Verify we have the right number of messages
     # Should be: system + user (initial) + (assistant + user) * number_of_steps
@@ -74,8 +62,6 @@ def test_github_issue_end_to_end(test_data):
     assert_observations_match(expected_observations, history)
 
     # Verify that the agent completed all steps
-    assert captured_agent.model.n_calls == len(model_responses), (
-        f"Expected {len(model_responses)} steps, got {captured_agent.model.n_calls}"
+    assert agent.model.n_calls == len(model_responses), (
+        f"Expected {len(model_responses)} steps, got {agent.model.n_calls}"
     )
-
-    captured_agent.env.cleanup()
