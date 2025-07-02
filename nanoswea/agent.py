@@ -105,5 +105,5 @@ class Agent:
     def get_final_output(self, output: dict[str, str]) -> str:
         """Check whether the agent has finished its task. Returning a non-empty string will terminate the agent."""
         if output.get("stdout") and output["stdout"].splitlines()[0] == "NANO_SWE_AGENT_FINAL_OUTPUT":
-            return "\n".join(output["stdout"].splitlines()[1:])
+            return "\n".join(output["stdout"].splitlines()[1:]) or "EMPTY_OUTPUT"
         return ""
