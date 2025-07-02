@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from nanoswea import package_dir
 from nanoswea.models.test_models import DeterministicModel
-from nanoswea.run.run_swebench import main
+from nanoswea.run.extra.run_swebench import main
 
 
 def test_swebench_end_to_end(github_test_data, tmp_path):
