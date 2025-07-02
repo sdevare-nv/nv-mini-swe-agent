@@ -8,9 +8,9 @@ import yaml
 from rich.console import Console
 
 from nanoswea import package_dir
-from nanoswea.agent import Agent, AgentConfig
-from nanoswea.environment import LocalEnvironment, LocalEnvironmentConfig
-from nanoswea.model import LitellmModel, LitellmModelConfig
+from nanoswea.agent import Agent
+from nanoswea.environment import LocalEnvironment
+from nanoswea.model import LitellmModel
 
 DEFAULT_CONFIG = Path(os.getenv("NSWEA_LOCAL_CONFIG_PATH", package_dir / "config" / "local.yaml"))
 console = Console(highlight=False)
@@ -56,10 +56,10 @@ def main(
         problem = get_multiline_problem_statement()
 
     agent = Agent(
-        AgentConfig(**(_config["agent"] | {"confirm_actions": not yolo})),
-        LitellmModel(LitellmModelConfig(**(_config.get("model", {}) | {"model_name": _model}))),
-        LocalEnvironment(LocalEnvironmentConfig()),
+        LitellmModel(**(_config.get("model", {}) | {"model_name": _model})),
+        LocalEnvironment(),
         problem,
+        **(_config["agent"] | {"confirm_actions": not yolo}),
     )
 
     try:

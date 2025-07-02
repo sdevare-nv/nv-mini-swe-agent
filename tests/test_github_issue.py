@@ -49,7 +49,7 @@ def test_github_issue_end_to_end(github_test_data):
     expected_observations = github_test_data["expected_observations"]
 
     with patch("nanoswea.run_github_issue.LitellmModel") as mock_model_class:
-        mock_model_class.return_value = DeterministicModel(DeterministicModelConfig(outputs=model_responses))
+        mock_model_class.return_value = DeterministicModel(outputs=model_responses)
         github_url = "https://github.com/SWE-agent/test-repo/issues/1"
         agent = main(issue_url=github_url, model="tardis", config=DEFAULT_CONFIG)  # type: ignore
 

@@ -9,9 +9,9 @@ import yaml
 from rich.console import Console
 
 from nanoswea import package_dir
-from nanoswea.agent import Agent, AgentConfig
-from nanoswea.environment import DockerEnvironment, DockerEnvironmentConfig
-from nanoswea.model import LitellmModel, LitellmModelConfig
+from nanoswea.agent import Agent
+from nanoswea.environment import DockerEnvironment
+from nanoswea.model import LitellmModel
 
 DEFAULT_CONFIG = Path(os.getenv("NSWEA_GITHUB_CONFIG_PATH", package_dir / "config" / "github_issue.yaml"))
 console = Console(highlight=False)
@@ -57,10 +57,10 @@ def main(
     problem_statement = fetch_github_issue(issue_url)
 
     agent = Agent(
-        AgentConfig(**(_config["agent"] | {"confirm_actions": False})),
-        LitellmModel(LitellmModelConfig(**(_config.get("model", {}) | {"model_name": _model}))),
-        DockerEnvironment(DockerEnvironmentConfig(**_config.get("environment", {}))),
+        LitellmModel(**(_config.get("model", {}) | {"model_name": _model})),
+        DockerEnvironment(**_config.get("environment", {})),
         problem_statement,
+        **(_config["agent"] | {"confirm_actions": False}),
     )
 
     repo_url = issue_url.split("/issues/")[0]

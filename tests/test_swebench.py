@@ -13,7 +13,7 @@ def test_swebench_end_to_end(github_test_data, tmp_path):
     output_file = tmp_path / "results.json"
 
     with patch("nanoswea.extra.run.run_swebench.LitellmModel") as mock_model_class:
-        mock_model_class.return_value = DeterministicModel(DeterministicModelConfig(outputs=model_responses))
+        mock_model_class.return_value = DeterministicModel(outputs=model_responses)
 
         main(subset="_test", split="test", slice_spec="0:1", output=str(output_file))
 

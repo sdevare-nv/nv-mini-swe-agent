@@ -21,13 +21,13 @@ console = Console(highlight=False)  # Print with colors
 
 
 class Agent:
-    def __init__(self, config: AgentConfig, model: Model, env: Environment, problem_statement: str):
-        self.config = config
-        instance_message = Template(config.instance_template).render(problem_statement=problem_statement)
-        console.print(f"[bold green]System template:[/bold green]\n{config.system_template}", highlight=False)
+    def __init__(self, model: Model, env: Environment, problem_statement: str, **kwargs):
+        self.config = AgentConfig(**kwargs)
+        instance_message = Template(self.config.instance_template).render(problem_statement=problem_statement)
+        console.print(f"[bold green]System template:[/bold green]\n{self.config.system_template}", highlight=False)
         console.print(f"[bold green]Instance message:[/bold green]\n{instance_message}", highlight=False)
         self.history = [
-            {"role": "system", "content": config.system_template},
+            {"role": "system", "content": self.config.system_template},
             {"role": "user", "content": instance_message},
         ]
         self.model = model

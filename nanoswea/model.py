@@ -14,8 +14,8 @@ class LitellmModelConfig:
 
 
 class LitellmModel:
-    def __init__(self, config: LitellmModelConfig):
-        self.config = config
+    def __init__(self, **kwargs):
+        self.config = LitellmModelConfig(**kwargs)
         self.cost = 0.0
         self.n_calls = 0
 

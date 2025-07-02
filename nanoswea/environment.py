@@ -14,9 +14,9 @@ class LocalEnvironmentConfig:
 
 
 class LocalEnvironment:
-    def __init__(self, config: LocalEnvironmentConfig):
+    def __init__(self, **kwargs):
         """This class executes bash commands directly on the local machine."""
-        self.config = config
+        self.config = LocalEnvironmentConfig(**kwargs)
 
     def execute(self, command: str, cwd: str = ""):
         """Execute a command in the local environment and return the result as a dict."""
@@ -42,9 +42,9 @@ class DockerEnvironmentConfig:
 
 
 class DockerEnvironment:
-    def __init__(self, config: DockerEnvironmentConfig):
+    def __init__(self, **kwargs):
         """This class executes bash commands in a Docker container using direct docker commands."""
-        self.config = config
+        self.config = DockerEnvironmentConfig(**kwargs)
         self.container_id = None
         self._start_container()
 

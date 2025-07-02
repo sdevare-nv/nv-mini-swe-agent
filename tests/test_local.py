@@ -13,7 +13,7 @@ def test_local_end_to_end(local_test_data):
     expected_observations = local_test_data["expected_observations"]
 
     with patch("nanoswea.run_local.LitellmModel") as mock_model_class:
-        mock_model_class.return_value = DeterministicModel(DeterministicModelConfig(outputs=model_responses))
+        mock_model_class.return_value = DeterministicModel(outputs=model_responses)
         agent = main(model="tardis", config=DEFAULT_CONFIG, yolo=True, problem="Blah blah blah")  # type: ignore
 
     assert agent is not None
