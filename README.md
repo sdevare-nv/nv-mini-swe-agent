@@ -43,7 +43,7 @@ This will expose `nswea` (local agent) and `nswea-gh` (run on github issues with
 But you can also just run the executables as
 
 ```bash
-python nanoswea/run_local.py
+python nanoswea/run/local.py
 ```
 
 etc.
