@@ -18,9 +18,33 @@ It's also modular & composable, and we expect to have lots of compatible goodies
 
 ## 🔥 Let's fire it up!
 
+Just try it without installing
+
+```bash
+pip install pipx && pipx run nano-swe-agent
+```
+
+Install it for experimentation
+
 ```bash
 git clone https://github.com/SWE-agent/nano-swe-agent.git
 cd nano-swe-agent
 pip install -e .
-python -m nanoswea/run_github_issue.py https://github.com/SWE-agent/test-repo/issues/1
+```
+
+This will expose `nswea` (local agent) and `nswea-gh` (run on github issues with docker as sandbox).
+But you can also just run the executables as
+
+```bash
+python nanoswea/run_local.py
+```
+
+etc.
+
+You can put your LM API keys in a `.env` at the repository root or make sure they're set in your shell.
+You can also change default behaviors by setting the following variables in `.env` or in the environment:
+
+```bash
+NSWEA_MODEL_NAME="claude-sonnet-4-20250514"  # your favorite model
+NSWEA_LOCAL_CONFIG_PATH="/path/to/your/own/config"  # override the default config for nswea 
 ```
