@@ -9,9 +9,9 @@ import yaml
 from rich.console import Console
 
 from nanoswea import package_dir
-from nanoswea.agent import Agent
-from nanoswea.environment import DockerEnvironment
-from nanoswea.model import LitellmModel
+from nanoswea.agents.micro import Agent
+from nanoswea.environments.docker import DockerEnvironment
+from nanoswea.models.litellm_model import LitellmModel
 
 DEFAULT_CONFIG = Path(os.getenv("NSWEA_GITHUB_CONFIG_PATH", package_dir / "config" / "github_issue.yaml"))
 console = Console(highlight=False)

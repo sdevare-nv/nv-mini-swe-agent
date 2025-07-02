@@ -1,37 +1,9 @@
-import os
 import shlex
 import subprocess
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-
-@dataclass
-class LocalEnvironmentConfig:
-    cwd: str = ""
-    env: dict[str, str] = field(default_factory=dict)
-    timeout: int = 30
-
-
-class LocalEnvironment:
-    def __init__(self, **kwargs):
-        """This class executes bash commands directly on the local machine."""
-        self.config = LocalEnvironmentConfig(**kwargs)
-
-    def execute(self, command: str, cwd: str = ""):
-        """Execute a command in the local environment and return the result as a dict."""
-        cwd = cwd or self.config.cwd or os.getcwd()
-        return vars(
-            subprocess.run(
-                command,
-                shell=True,
-                capture_output=True,
-                text=True,
-                cwd=cwd,
-                env=os.environ | self.config.env,
-                timeout=self.config.timeout,
-            )
-        )
 
 @dataclass
 class DockerEnvironmentConfig:

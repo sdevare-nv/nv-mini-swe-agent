@@ -8,9 +8,9 @@ import yaml
 from datasets import load_dataset
 
 from nanoswea import package_dir
-from nanoswea.agent import Agent
-from nanoswea.environment import DockerEnvironment
-from nanoswea.model import LitellmModel
+from nanoswea.agents.micro import Agent
+from nanoswea.environments.docker import DockerEnvironment
+from nanoswea.models.litellm_model import LitellmModel
 
 app = typer.Typer()
 

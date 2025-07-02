@@ -5,9 +5,9 @@
 
 </div>
 
-`nano-SWE-agent` is an AI agent implemented in [100 lines of python](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/agent.py)!
-Okay, maybe add another 100 lines for a [minimal sandboxed environment](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/environment.py) 
-and [model config](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/model.py) -- but that's it, and no fancy packages used!
+`nano-SWE-agent` offers an AI agent implemented in [100 lines of python](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/agents/micro.py)!
+Okay, maybe add another 100 lines total for a [minimal environment](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/environments/local.py) 
+and [model config](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/models/litellm_model.py) -- but that's it, and no fancy packages used!
 
 - 🔥 Run instantly without installation: `pip install pipx && pipx run nano-swe-agent`
 - ⚙️ Take full control & quickly prototype your own agent ideas
@@ -20,6 +20,14 @@ The project builds on our experience building [SWE-agent](https://swe-agent.com)
 
 ```bash
 pip install pipx && pipx run nano-swe-agent
+```
+
+Just make sure that you have your LM API key set as an environment variable.
+You can also change default behaviors by setting the following variables in `.env` or in the environment:
+
+```bash
+NSWEA_MODEL_NAME="claude-sonnet-4-20250514"  # your favorite model
+NSWEA_LOCAL_CONFIG_PATH="/path/to/your/own/config"  # override the default config for nswea 
 ```
 
 ## Install & experiment
@@ -40,9 +48,3 @@ python nanoswea/run_local.py
 etc.
 
 You can put your LM API keys in a `.env` at the repository root or make sure they're set in your shell.
-You can also change default behaviors by setting the following variables in `.env` or in the environment:
-
-```bash
-NSWEA_MODEL_NAME="claude-sonnet-4-20250514"  # your favorite model
-NSWEA_LOCAL_CONFIG_PATH="/path/to/your/own/config"  # override the default config for nswea 
-```

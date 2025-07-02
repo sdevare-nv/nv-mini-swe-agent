@@ -8,9 +8,9 @@ import yaml
 from rich.console import Console
 
 from nanoswea import package_dir
-from nanoswea.agent import Agent
-from nanoswea.environment import LocalEnvironment
-from nanoswea.model import LitellmModel
+from nanoswea.agents.micro import Agent
+from nanoswea.environments.local import LocalEnvironment
+from nanoswea.models.litellm_model import LitellmModel
 
 DEFAULT_CONFIG = Path(os.getenv("NSWEA_LOCAL_CONFIG_PATH", package_dir / "config" / "local.yaml"))
 console = Console(highlight=False)
