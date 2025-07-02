@@ -29,10 +29,10 @@ class LitellmModel:
         response: litellm.types.utils.ModelResponse = litellm.completion(  # type: ignore
             model=self.model_name, messages=messages, **self.model_kwargs
         )
-        return response.choices[0].message.content  # type: ignore
+        return response
     
     def query(self, messages: list[dict[str, str]]) -> str:
         self.n_calls += 1
         response = self._query(messages)
         self.cost += litellm.cost_calculator.completion_cost(response)
-        return response
+        return response.choices[0].message.content  # type: ignore
