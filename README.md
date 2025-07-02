@@ -8,6 +8,7 @@
 `nano-SWE-agent` offers an AI agent implemented in [100 lines of python](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/agents/micro.py)!
 Okay, maybe add another 100 lines total for a [minimal environment](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/environments/local.py) 
 and [model config](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/models/litellm_model.py) -- but that's it, and no fancy packages used!
+Of course, there's still [power-ups](#powering-up) for you to mix in: Each of these three components has variants that allow you to achieve anything!
 
 - 🔥 Run instantly without installation: `pip install pipx && pipx run nano-swe-agent`
 - ⚙️ Take full control & quickly prototype your own agent ideas
@@ -48,3 +49,15 @@ python nanoswea/run_local.py
 etc.
 
 You can put your LM API keys in a `.env` at the repository root or make sure they're set in your shell.
+
+## Powering up <a target="powerup"/>
+
+Everything in this package follows the following simple recepe:
+
+1. Pick an [agent class](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/agents) (what's the control flow you need?)
+2. Pick an [environment class](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/environments) (how should actions be executed?)
+3. Pick a [model class](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/models) (how is the LM queried?)
+4. Bind them all together in a [run script](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/run) (how to invoke the agent?)
+
+We aim to keep all of these components very simple, but offer lots of choice between them -- enough to cover a broad range of
+things that you might want to do.
