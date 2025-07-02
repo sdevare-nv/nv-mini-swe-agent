@@ -8,13 +8,13 @@ from tenacity import before_sleep_log, retry, stop_after_attempt, wait_exponenti
 logger = logging.getLogger(__name__)
 
 @dataclass
-class ModelConfig:
+class LitellmModelConfig:
     model_name: str
     model_kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 class LitellmModel:
-    def __init__(self, config: ModelConfig):
+    def __init__(self, config: LitellmModelConfig):
         self.config = config
         self.cost = 0.0
         self.n_calls = 0

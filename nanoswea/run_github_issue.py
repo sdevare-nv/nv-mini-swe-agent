@@ -11,7 +11,7 @@ from rich.console import Console
 from nanoswea import package_dir
 from nanoswea.agent import Agent, AgentConfig
 from nanoswea.environment import DockerEnvironment, DockerEnvironmentConfig
-from nanoswea.model import LitellmModel, ModelConfig
+from nanoswea.model import LitellmModel, LitellmModelConfig
 
 DEFAULT_CONFIG = Path(os.getenv("NSWEA_GITHUB_CONFIG_PATH", package_dir / "config" / "github_issue.yaml"))
 console = Console(highlight=False)
@@ -58,7 +58,7 @@ def main(
 
     agent = Agent(
         AgentConfig(**(_config["agent"] | {"confirm_actions": False})),
-        LitellmModel(ModelConfig(**(_config.get("model", {}) | {"model_name": _model}))),
+        LitellmModel(LitellmModelConfig(**(_config.get("model", {}) | {"model_name": _model}))),
         DockerEnvironment(DockerEnvironmentConfig(**_config.get("environment", {}))),
         problem_statement,
     )

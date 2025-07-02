@@ -10,7 +10,7 @@ from datasets import load_dataset
 from nanoswea import package_dir
 from nanoswea.agent import Agent, AgentConfig
 from nanoswea.environment import DockerEnvironment, DockerEnvironmentConfig
-from nanoswea.model import LitellmModel, ModelConfig
+from nanoswea.model import LitellmModel, LitellmModelConfig
 
 app = typer.Typer()
 
@@ -35,7 +35,7 @@ def get_image_name(instance: dict) -> str:
     return image_name
 
 
-def update_output_file(output_path: Path, instance_id: str, model_config: ModelConfig, result: str):
+def update_output_file(output_path: Path, instance_id: str, model_config: LitellmModelConfig, result: str):
     """Update the output JSON file with results from a single instance."""
     output_data = {}
     if output_path.exists():
@@ -60,7 +60,7 @@ def process_instance(instance: dict, output_path: Path) -> dict:
 
     agent = Agent(
         AgentConfig(**config["agent"]),
-        LitellmModel(ModelConfig(**config["model"])),
+        LitellmModel(LitellmModelConfig(**config["model"])),
         DockerEnvironment(DockerEnvironmentConfig(**(config["environment"] | {"image": image_name}))),
         problem_statement,
     )
