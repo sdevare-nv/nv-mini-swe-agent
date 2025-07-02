@@ -2,7 +2,7 @@ import re
 from unittest.mock import patch
 
 from nanoswea.models.test_models import DeterministicModel
-from nanoswea.run.run_local import DEFAULT_CONFIG, main
+from nanoswea.run.local import DEFAULT_CONFIG, main
 from tests.test_github_issue import assert_observations_match
 
 
@@ -12,7 +12,7 @@ def test_local_end_to_end(local_test_data):
     model_responses = local_test_data["model_responses"]
     expected_observations = local_test_data["expected_observations"]
 
-    with patch("nanoswea.run.run_local.LitellmModel") as mock_model_class:
+    with patch("nanoswea.run.local.LitellmModel") as mock_model_class:
         mock_model_class.return_value = DeterministicModel(outputs=model_responses)
         agent = main(model="tardis", config=DEFAULT_CONFIG, yolo=True, problem="Blah blah blah")  # type: ignore
 

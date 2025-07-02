@@ -74,7 +74,6 @@ def process_instance(instance: dict, output_path: Path) -> dict:
     print(f"Cost: ${agent.model.cost:.4f}")
     print(f"Steps: {agent.model.n_calls}")
 
-
     return {
         "instance_id": instance_id,
         "result": result,
@@ -119,7 +118,6 @@ def run_swebench(subset: str = "lite", split: str = "dev", slice_spec: str = "",
     if slice_spec:
         values = [int(x) if x else None for x in slice_spec.split(":")]
         instances = instances[slice(*values)]
-
 
     output_path = Path(output)
     print(f"Running on {len(instances)} instances...")
