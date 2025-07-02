@@ -107,18 +107,15 @@ def run_swebench(subset: str = "lite", split: str = "dev", slice_spec: str = "",
         slice_spec: Slice specification (e.g., "0:5" for first 5 instances)
         output: Output JSON file path
     """
-    # Load dataset
     dataset_path = DATASET_MAPPING[subset]
     print(f"Loading dataset {dataset_path}, split {split}...")
     instances = list(load_dataset(dataset_path, split=split))
 
-    # Apply slice if specified
     if slice_spec:
         values = [int(x) if x else None for x in slice_spec.split(":")]
         instances = instances[slice(*values)]
 
-    # Load agent configuration
-    config = yaml.safe_load((package_dir / "config" / "github_issue.yaml").read_text())
+    config = yaml.safe_load((package_dir / "config" / "extra" / "swebench.yaml").read_text())
     agent_config = AgentConfig(**config["agent"])
     model_config = ModelConfig(**config["model"])
 

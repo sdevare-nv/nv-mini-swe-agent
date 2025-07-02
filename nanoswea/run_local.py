@@ -57,7 +57,7 @@ def main(
 
     agent = Agent(
         AgentConfig(**(_config["agent"] | {"confirm_actions": not yolo})),
-        LitellmModel(ModelConfig(**(_config["model"] | {"model_name": _model}))),
+        LitellmModel(ModelConfig(**(_config.get("model", {}) | {"model_name": _model}))),
         LocalEnvironment(LocalEnvironmentConfig()),
         problem,
     )

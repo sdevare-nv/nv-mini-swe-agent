@@ -1,0 +1,25 @@
+agent:
+  system_template: |
+    You are a helpful assistant that can interact with a computer.
+
+  instance_template: |
+    Please solve this issue: {{problem_statement}}
+
+    You can execute bash commands and edit files to implement the necessary changes.
+    <IMPORTANT>
+    1. Every response must contain exactly one action
+    2. The action must be enclosed in triple backticks
+    3. You cannot change directories or set new environment variables
+    4. To finish, issue the following command: `echo NANO_SWE_AGENT_FINAL_OUTPUT && git add -A && git diff --cached`
+    </IMPORTANT>
+
+
+  step_limit: 100
+  cost_limit: 3.0
+  confirm_actions: false
+
+environment:
+  image: "python:3.11"
+
+model:
+  model_name: "claude-sonnet-4-20250514"
