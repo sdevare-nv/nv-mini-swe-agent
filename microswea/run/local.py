@@ -10,6 +10,7 @@ from rich.console import Console
 from microswea import package_dir
 from microswea.agents.micro import Agent
 from microswea.environments.local import LocalEnvironment
+from microswea.models import get_model_class
 
 DEFAULT_CONFIG = Path(os.getenv("MSWEA_LOCAL_CONFIG_PATH", package_dir / "config" / "local.yaml"))
 console = Console(highlight=False)
@@ -55,11 +56,10 @@ def main(
     if not problem:
         problem = get_multiline_problem_statement()
 
-    # Defer import because it's a bit slow
-    from microswea.models.litellm_model import LitellmModel
-
+    # Use get_model_class to defer model imports (can take a while), but also to switch in
+    # some optimized models (especially for anthropic)
     agent = Agent(
-        LitellmModel(**(_config.get("model", {}) | {"model_name": _model})),
+        get_model_class(_model)(**(_config.get("model", {}) | {"model_name": _model})),
         LocalEnvironment(),
         problem,
         **(_config["agent"] | {"confirm_actions": not yolo}),
