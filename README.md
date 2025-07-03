@@ -67,10 +67,22 @@ things that you might want to do.
 We happily accept contributions!
 
 <details>
+<summary>Areas of help</summary>
+
+- Support for more models (anything where `litellm` doesn't work out of the box)
+- Documentation, examples, tutorials, etc.
+- Support for more environments & deployments (e.g., run it as a github action, etc.)
+- Take a look at the [issues](https://github.com/SWE-agent/nano-swe-agent/issues) and see if there's anything you'd like to work on!
+
+</details>
+
+<details>
 <summary>Design & Architecture</summary>
 
 - `nano-swe-agent` aims to stay minimalistic & hackable
 - To extend features, we prefer to add a new version of the one of the four components above, rather than making the existing components more complex
+- Components should be relatively self-contained, but if there are utilities that might be shared, add a `utils` folder (like [this one](https://github.com/SWE-agent/nano-swe-agent/tree/main/nanoswea/models/utils)). But keep it simple!
+- If your component is a bit more specific, add it into an `extra` folder (like [this one](https://github.com/SWE-agent/nano-swe-agent/tree/main/nanoswea/run/extra))
 - Our target audience is anyone who doesn't shy away from modifying a bit of code (especially a run script) to get what they want
 - Therefore, not everything needs to be configurable with the config files, but it should be easy to use with a run script
 - Many LMs write very verbose code -- please clean it up! Same goes for the tests. They should still be concise and readable.
