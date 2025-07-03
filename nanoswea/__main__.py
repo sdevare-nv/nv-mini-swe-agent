@@ -3,8 +3,8 @@
 
 import sys
 
-from nanoswea.run_github_issue import app as github_app
-from nanoswea.run_local import app as local_app
+from nanoswea.run.github_issue import app as github_app
+from nanoswea.run.local import app as local_app
 
 
 def main() -> None:
