@@ -1,3 +1,4 @@
+import pytest
 import re
 from unittest.mock import patch
 
@@ -42,6 +43,7 @@ def assert_observations_match(expected_observations: list[str], history: list[di
         )
 
 
+@pytest.mark.slow
 def test_github_issue_end_to_end(github_test_data):
     """Test the complete flow from CLI to final result using real environment but deterministic model"""
 

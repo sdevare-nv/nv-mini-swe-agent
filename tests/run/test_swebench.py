@@ -1,3 +1,4 @@
+import pytest
 import json
 from unittest.mock import patch
 
@@ -6,6 +7,7 @@ from microswea.models.test_models import DeterministicModel
 from microswea.run.extra.swebench import main
 
 
+@pytest.mark.slow
 def test_swebench_end_to_end(github_test_data, tmp_path):
     """Test the complete SWEBench flow using the _test subset with deterministic model"""
 
