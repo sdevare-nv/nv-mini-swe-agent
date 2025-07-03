@@ -20,17 +20,10 @@ The project builds on our experience building [SWE-agent](https://swe-agent.com)
 ## 🔥 Try it without permanent installation <a target="fire"/>
 
 ```bash
+export NSWEA_MODEL_NAME="claude-sonnet-4-20250514"  # your favorite model
+export ANTHROPIC_API_KEY="xxx"  # API key for your model
 pip install pipx && pipx run nano-swe-agent
 ```
-
-Just make sure that you have your LM API key set as an environment variable.
-You can also change default behaviors by setting the following variables in `.env` or in the environment:
-
-```bash
-NSWEA_MODEL_NAME="claude-sonnet-4-20250514"  # your favorite model
-NSWEA_LOCAL_CONFIG_PATH="/path/to/your/own/config"  # override the default config for nswea 
-```
-
 ## Install & experiment
 
 ```bash
@@ -49,6 +42,11 @@ python nanoswea/run/local.py
 etc.
 
 You can put your LM API keys in a `.env` at the repository root or make sure they're set in your shell.
+You can also set your default configs like so:
+
+```bash
+NSWEA_LOCAL_CONFIG_PATH="/path/to/your/own/config"  # override the default config for nswea 
+```
 
 ## Powering up <a target="powerup"/>
 
