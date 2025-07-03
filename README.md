@@ -6,7 +6,7 @@
 </div>
 
 `nano-SWE-agent` offers an AI agent implemented in [100 lines of python](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/agents/micro.py)!
-Okay, maybe add another 100 lines total for a [minimal environment](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/environments/local.py) 
+Okay, maybe add another 100 lines total for a [minimal environment](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/environments/local.py)
 and [model config](https://github.com/SWE-agent/nano-swe-agent/blob/main/nanoswea/models/litellm_model.py) -- but that's it, and no fancy packages used!
 This still packs a punch though: We resolve XX% of GitHub issues in the [SWE-bench verified benchmark](https://www.swebench.com/).
 And then there's additional [power-ups](#powering-up) for you to mix!
@@ -25,6 +25,7 @@ export NSWEA_MODEL_NAME="claude-sonnet-4-20250514"  # your favorite model
 export ANTHROPIC_API_KEY="xxx"  # API key for your model
 pip install pipx && pipx run --spec git+ssh://git@github.com/SWE-agent/nano-swe-agent nano-swe-agent
 ```
+
 ## Install & experiment
 
 ```bash

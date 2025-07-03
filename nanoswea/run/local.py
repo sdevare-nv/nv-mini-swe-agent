@@ -31,6 +31,7 @@ def get_multiline_problem_statement() -> str:
 
     return "\n".join(lines).strip()
 
+
 @app.command()
 def main(
     config: str = typer.Option(str(DEFAULT_CONFIG), "--config", help="Path to config file"),

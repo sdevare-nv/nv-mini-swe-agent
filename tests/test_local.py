@@ -1,4 +1,3 @@
-import re
 from unittest.mock import patch
 
 from nanoswea.models.test_models import DeterministicModel

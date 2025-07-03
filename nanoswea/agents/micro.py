@@ -17,6 +17,7 @@ class AgentConfig:
     cost_limit: float = 3.0
     confirm_actions: bool = True
 
+
 console = Console(highlight=False)  # Print with colors
 
 
@@ -47,7 +48,7 @@ class Agent:
 
         Returns:
             is_finished: whether the agent has finished its task
-            response: Model reponse (if any)
+            response: Model response (if any)
             observation: The observation or error message
         """
         if 0 < self.config.step_limit <= self.model.n_calls or 0 < self.config.cost_limit <= self.model.cost:
