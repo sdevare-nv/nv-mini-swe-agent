@@ -5,7 +5,7 @@
   },
   {
     "role": "user",
-    "content": "Please solve this issue: GitHub Issue: SyntaxError: invalid syntax\n\nI'm running `missing_colon.py` as follows:\r\n\r\n```python\r\ndivision(23, 0)\r\n```\r\n\r\nbut I get the following error:\r\n\r\n```\r\n  File \"/Users/fuchur/Documents/24/git_sync/swe-agent-test-repo/tests/./missing_colon.py\", line 4\r\n    def division(a: float, b: float) -> float\r\n                                             ^\r\nSyntaxError: invalid syntax\r\n```\n\nYou can execute bash commands and edit files to implement the necessary changes.\n<IMPORTANT>\n1. Every response must contain exactly one action\n2. The action must be enclosed in triple backticks\n3. To finish, issue the following command: `echo NANO_SWE_AGENT_FINAL_OUTPUT && git add -A && git diff --cached`\n</IMPORTANT>"
+    "content": "Please solve this issue: GitHub Issue: SyntaxError: invalid syntax\n\nI'm running `missing_colon.py` as follows:\r\n\r\n```python\r\ndivision(23, 0)\r\n```\r\n\r\nbut I get the following error:\r\n\r\n```\r\n  File \"/Users/fuchur/Documents/24/git_sync/swe-agent-test-repo/tests/./missing_colon.py\", line 4\r\n    def division(a: float, b: float) -> float\r\n                                             ^\r\nSyntaxError: invalid syntax\r\n```\n\nYou can execute bash commands and edit files to implement the necessary changes.\n<IMPORTANT>\n1. Every response must contain exactly one action\n2. The action must be enclosed in triple backticks\n3. To finish, issue the following command: `echo MICRO_SWE_AGENT_FINAL_OUTPUT && git add -A && git diff --cached`\n</IMPORTANT>"
   },
   {
     "role": "assistant",
@@ -81,7 +81,7 @@
   },
   {
     "role": "assistant",
-    "content": "Now let's verify that the updated file works correctly both for valid division and for the division by zero case:\n\n```bash\necho NANO_SWE_AGENT_FINAL_OUTPUT && git add -A && git diff --cached\n```"
+    "content": "Now let's verify that the updated file works correctly both for valid division and for the division by zero case:\n\n```bash\necho MICRO_SWE_AGENT_FINAL_OUTPUT && git add -A && git diff --cached\n```"
   },
   {
     "role": "user",

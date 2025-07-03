@@ -8,7 +8,7 @@
 `micro-SWE-agent` offers an AI agent implemented in [100 lines of python](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/agents/default.py)!
 Okay, maybe add another 100 lines total for the [environment](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/environments/local.py),
 [model config](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/models/litellm_model.py),
-and [run script](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run/run_hello_world.py) -- but that's it, and no fancy packages used!
+and [run script](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run/hello_world.py) -- but that's it, and no fancy packages used!
 This still packs a punch though: We resolve XX% of GitHub issues in the [SWE-bench verified benchmark](https://www.swebench.com/).
 And then there's additional [power-ups](#powering-up) to make this really useful in your daily dev workflow!
 

@@ -17,7 +17,7 @@
   },
   {
     "role": "assistant",
-    "content": "OK, now let me end this run.\n\n```bash\necho NANO_SWE_AGENT_FINAL_OUTPUT\n```"
+    "content": "OK, now let me end this run.\n\n```bash\necho MICRO_SWE_AGENT_FINAL_OUTPUT\n```"
   },
   {
     "role": "user",
