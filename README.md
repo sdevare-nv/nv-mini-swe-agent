@@ -61,3 +61,19 @@ Everything in this package follows the following simple recipe:
 
 We aim to keep all of these components very simple, but offer lots of choice between them -- enough to cover a broad range of
 things that you might want to do.
+
+## Contributing
+
+We happily accept contributions!
+
+<details>
+<summary>Design & Architecture</summary>
+
+- `nano-swe-agent` aims to stay minimalistic & hackable
+- To extend features, we prefer to add a new version of the one of the four components above, rather than making the existing components more complex
+- Our target audience is anyone who doesn't shy away from modifying a bit of code (especially a run script) to get what they want
+- Therefore, not everything needs to be configurable with the config files, but it should be easy to use with a run script
+- Many LMs write very verbose code -- please clean it up! Same goes for the tests. They should still be concise and readable.
+- Please install `pre-commit` (`pip install pre-commit && pre-commit install`) and run it before committing. This will enforce our style guide.
+
+</details>
