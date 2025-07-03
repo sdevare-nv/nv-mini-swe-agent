@@ -56,12 +56,17 @@ MSWEA_LOCAL_CONFIG_PATH="/path/to/your/own/config"  # override the default confi
 
 ## Powering up <a target="powerup"/>
 
-Everything in this package follows the following simple recipe:
+We provide several different entry points to the agent,
+for example [hello world](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run/hello_world.py),
+or the [default when calling `micro`](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run/local.py).
 
-1. Pick an [agent class](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/agents) (what's the control flow you need?)
-2. Pick an [environment class](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/environments) (how should actions be executed?)
-3. Pick a [model class](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/models) (how is the LM queried?)
-4. Bind them all together in a [run script](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run) (how to invoke the agent?), possibly taking a [config](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/config)
+Want to cook up your custom version and the config is not enough?
+Just follow the recipe below:
+
+1. What's the control flow you need? Pick an [agent class](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/agents) (e.g., [simplest example](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/agents/default.py), [with human in the loop](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/agents/interactive.py))
+2. How should actions be executed? Pick an [environment class](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/environments) (e.g., [local](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/environments/local.py), or [docker](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/environments/docker.py))
+3. How is the LM queried? Pick a [model class](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/models) (e.g., [litellm](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/models/litellm_model.py))
+4. How to invoke the agent? Bind them all together in a [run script](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run), possibly reading from a [config](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/config) (e.g., [hello world](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run/hello_world.py), or [`micro` entry point](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run/local.py))
 
 We aim to keep all of these components very simple, but offer lots of choice between them -- enough to cover a broad range of
 things that you might want to do.
