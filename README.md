@@ -14,6 +14,7 @@ And then there's additional [power-ups](#powering-up) for you to mix!
 - 🔥 Run instantly without installation: `pip install pipx && pipx run nano-swe-agent`
 - ⚙️ Take full control & quickly prototype your own agent ideas
 - 🏋 Lean assumptions-free baseline system made for reinforcement learning and finetuning
+- 🐳 Trivial to deploy to sandboxed environments
 
 The project builds on our experience building [SWE-agent](https://swe-agent.com), one of the earliest and most successful software engineering agents for research.
 
