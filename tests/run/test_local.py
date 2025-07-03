@@ -11,7 +11,7 @@ def test_local_end_to_end(local_test_data):
     model_responses = local_test_data["model_responses"]
     expected_observations = local_test_data["expected_observations"]
 
-    with patch("microswea.run.local.LitellmModel") as mock_model_class:
+    with patch("microswea.models.litellm_model.LitellmModel") as mock_model_class:
         mock_model_class.return_value = DeterministicModel(outputs=model_responses)
         agent = main(model="tardis", config=DEFAULT_CONFIG, yolo=True, problem="Blah blah blah")  # type: ignore
 
