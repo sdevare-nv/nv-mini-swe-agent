@@ -11,8 +11,11 @@ from microswea import Environment, Model
 
 @dataclass
 class AgentConfig:
-    system_template: str
-    instance_template: str
+    system_template: str = "You are a helpful assistant that can do anything."
+    instance_template: str = (
+        "Your task: {{problem_statement}}. Please reply with a single shell command in triple backticks. "
+        "To finish, the output of the shell command must start with 'MICRO_SWE_AGENT_FINAL_OUTPUT'."
+    )
     step_limit: int = 0
     cost_limit: float = 3.0
 
@@ -94,5 +97,5 @@ class DefaultAgent:
 
     def has_finished(self, output: dict[str, str]):
         """Raises TerminatingException with final output if the agent has finished its task."""
-        if output.get("stdout") and output["stdout"].splitlines()[0] == "NANO_SWE_AGENT_FINAL_OUTPUT":
-            raise TerminatingException("\n".join(output["stdout"].splitlines()[1:]) or "EMPTY_OUTPUT")
+        if output.get("stdout", "").startswith("MICRO_SWE_AGENT_FINAL_OUTPUT"):
+            raise TerminatingException(output["stdout"].removeprefix("MICRO_SWE_AGENT_FINAL_OUTPUT"))
