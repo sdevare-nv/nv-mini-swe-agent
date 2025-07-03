@@ -35,14 +35,17 @@ cd micro-swe-agent
 pip install -e .
 ```
 
-This will expose `mswea` (local agent) and `mswea-gh` (run on github issues with docker as sandbox).
+Now you can run the default local agent as
+
+```bash
+micro
+```
+
 But you can also just run the executables as
 
 ```bash
 python microswea/run/local.py
 ```
-
-etc.
 
 You can put your LM API keys in a `.env` at the repository root or make sure they're set in your shell.
 You can also set your default configs like so:
