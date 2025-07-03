@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from microswea.models.test_models import DeterministicModel
 from microswea.run.local import DEFAULT_CONFIG, main
-from tests.test_github_issue import assert_observations_match
+from tests.run.test_github_issue import assert_observations_match
 
 
 def test_local_end_to_end(local_test_data):
