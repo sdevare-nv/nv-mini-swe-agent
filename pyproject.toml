@@ -55,8 +55,7 @@ dev = [
 ]
 
 [project.scripts]
-mswea-gh= "microswea.run_github_issue:app"
-mswea = "microswea.run_local:app"
+micro = "microswea.__main__:main"
 micro-swe-agent = "microswea.__main__:main"
 
 [tool.setuptools]
