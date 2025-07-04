@@ -65,8 +65,10 @@ class InteractiveAgent(DefaultAgent):
             return self.get_response("[bold yellow]>[/bold yellow] ")
         elif user_input.strip() == "/y":
             self.config.confirm_actions = False
+            console.print("Yolo mode [bold red]enabled[/bold red].")
             return self.get_response(prompt)
         elif user_input.strip() == "/x":
             self.config.confirm_actions = True
+            console.print("Yolo mode [bold green]disabled[/bold green].")
             return self.get_response(prompt)
         return user_input
