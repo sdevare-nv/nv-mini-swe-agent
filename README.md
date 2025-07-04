@@ -13,7 +13,7 @@
 
 Use it to
 
-- 🔥 Instant tool — no install needed: `pip install pipx && pipx run micro-swe-agent`
+- 🔥 Instantly solve problems: `pip install pipx && pipx run micro-swe-agent`
 - ⚙️ Take full control & quickly build custom agents
 - 🏋 Fine-tune & RL with a minimal, assumption-free agent
 - 🐳 Deploy seamlessly to sandboxed environments
