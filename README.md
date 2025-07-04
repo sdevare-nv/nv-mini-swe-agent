@@ -5,17 +5,22 @@
 
 </div>
 
-`micro-SWE-agent` offers an AI agent implemented in [100 lines of python](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/agents/default.py)!
+`micro-SWE-agent` provides
+
+- An AI agent implemented in [100 lines of python](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/agents/default.py)!
 Okay, maybe add another 100 lines total for the [environment](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/environments/local.py),
 [model config](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/models/litellm_model.py),
 and [run script](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run/hello_world.py) -- but that's it, and no fancy packages used!
 This still packs a punch though: We resolve XX% of GitHub issues in the [SWE-bench verified benchmark](https://www.swebench.com/).
-And then there's additional [power-ups](#powering-up) to make this really useful in your daily dev workflow!
+- A few slightly extended variants that make turn this into your daily dev swiss army knive!
+- Lots of additional [power-ups](#powering-up) to choose from to turn this into your personal tool!
 
-- 🔥 Run instantly without installation: `pip install pipx && pipx run micro-swe-agent`
+Use `micro-SWE-agent` to
+
+- 🔥 Run a powerful tool instantly without installation: `pip install pipx && pipx run micro-swe-agent`
 - ⚙️ Take full control & quickly prototype your own agent ideas
-- 🏋 Lean assumptions-free baseline system made for reinforcement learning and finetuning
-- 🐳 Trivial to deploy to sandboxed environments
+- 🏋 Leverage a lean assumptions-free system made for reinforcement learning and finetuning
+- 🐳 Trivially deploy to sandboxed environments
 
 The project builds on our experience building [SWE-agent](https://swe-agent.com), one of the earliest and most successful software engineering agents for research.
 
