@@ -1,5 +1,4 @@
-"""A small generalization of the default agent that puts the user in the loop.
-"""
+"""A small generalization of the default agent that puts the user in the loop."""
 
 import re
 from dataclasses import dataclass, field

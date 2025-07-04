@@ -12,6 +12,7 @@ def main() -> None:
 
     if len(args) > 0 and args[0] == "gh":
         from microswea.run.github_issue import app as github_app
+
         sys.argv = sys.argv[:1] + args[1:]  # Keep script name, remove "gh"
         github_app()
     else:

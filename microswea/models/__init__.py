@@ -2,7 +2,6 @@
 You can ignore this file completelyif you explicitly set your model in your run script.
 """
 
-
 import copy
 import os
 
@@ -12,6 +11,7 @@ from rich.console import Console
 from microswea import Model, global_config_file
 
 console = Console()
+
 
 def get_model(input_model_name: str | None = None, config: dict | None = None) -> Model:
     """Get an initialized model object from any kind of user input or settings."""

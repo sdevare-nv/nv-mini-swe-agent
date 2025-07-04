@@ -8,14 +8,14 @@
 - **🐜 Tiny**: Just [100 lines of python](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/agents/default.py) (+100 for [env](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/environments/local.py),
 [model model](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/models/litellm_model.py), [script](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run/hello_world.py)) — no fancy dependencies!
 - **💪 Powerful:** Resolves XX% of GitHub issues in the [SWE-bench verified benchmark](https://www.swebench.com/).
-- **🤗 Friendly:** Comes with extended variants that will turn this into your daily dev swiss army knive!
+- **🤗 Friendly:** Comes with extended variants that will turn this into your daily dev swiss army knife!
 - **🎓 Cutting edge:** Built by the Princeton & Stanford team behind [SWE-bench](https://swe-bench.com) and [SWE-agent](https://swe-agent.com).
 
 Use it to
 
 - 🔥 Instantly solve problems: `pip install pipx && pipx run micro-swe-agent`
 - ⚙️ Take full control & quickly build custom agents
-- 🏋 Fine-tune & RL with a minimal, assumption-free agent
+- 🏋 Fine-tune & RL with a minimal, assumption-free agen
 - 🐳 Deploy seamlessly to sandboxed environments
 
 ## 🔥 Try it!
@@ -48,7 +48,7 @@ And welcome your new friend:
 micro
 ```
 
-which you can also envoke as
+which you can also evoke as
 
 ```bash
 python microswea/run/local.py
