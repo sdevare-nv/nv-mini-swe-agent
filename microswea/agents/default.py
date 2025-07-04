@@ -50,7 +50,7 @@ class DefaultAgent:
                 highlight=False,
             )
         else:
-            console.print(f"\n[bold green]User[/bold green]:\n{content}", highlight=False)
+            console.print(f"\n[bold green]{role.capitalize()}[/bold green]:\n{content}", highlight=False)
 
     def run(self) -> str:
         """Run step() until agent is finished. Return final observation."""
