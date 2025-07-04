@@ -5,32 +5,36 @@
 
 </div>
 
-`micro-SWE-agent`:
+- **🐜 Tiny**: Just [100 lines of python](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/agents/default.py) (+100 for [env](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/environments/local.py),
+[model model](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/models/litellm_model.py), [script](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run/hello_world.py)) — no fancy dependencies!
+- **💪 Powerful:** Resolves XX% of GitHub issues in the [SWE-bench verified benchmark](https://www.swebench.com/).
+- **🤗 Friendly:** Comes with extended variants that will turn this into your daily dev swiss army knive!
+- **🎓 Cutting edge:** Built by the Princeton & Stanford team behind [SWE-bench](https://swe-bench.com) and [SWE-agent](https://swe-agent.com).
 
-- An AI agent implemented in [100 lines of python](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/agents/default.py)!
-Okay, maybe add another 100 lines total for the [environment](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/environments/local.py),
-[model config](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/models/litellm_model.py),
-and [run script](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run/hello_world.py) -- but that's it, and no fancy packages used!
-This still packs a punch though: We resolve XX% of GitHub issues in the [SWE-bench verified benchmark](https://www.swebench.com/).
-- Also comes with slightly extended variants that make turn this into your daily dev swiss army knive!
-- Lots of additional [power-ups](#powering-up) to choose from to turn this into your personal tool!
+Use it to
 
-Use `micro-SWE-agent` to
+- 🔥 Instant tool — no install needed: `pip install pipx && pipx run micro-swe-agent`
+- ⚙️ Take full control & quickly build custom agents
+- 🏋 Fine-tune & RL with a minimal, assumption-free agent
+- 🐳 Deploy seamlessly to sandboxed environments
 
-- 🔥 Run a powerful tool instantly without installation: `pip install pipx && pipx run micro-swe-agent`
-- ⚙️ Take full control & quickly prototype your own agent ideas
-- 🏋 Leverage a lean assumptions-free system made for reinforcement learning and finetuning
-- 🐳 Trivially deploy to sandboxed environments
-
-The project builds on our experience building [SWE-agent](https://swe-agent.com), one of the earliest and most successful software engineering agents for research.
-
-## 🔥 Run as a tool without permanent installation <a target="fire"/>
+## 🔥 Try it!
 
 ```bash
 pip install pipx && pipx run --spec git+ssh://git@github.com/SWE-agent/micro-swe-agent micro-swe-agent
 ```
 
-## Install
+<details>
+
+<summary>Details</summary>
+
+[pipx](https://pipx.pypa.io/stable/) will install `micro-swe-agent` in an isolated environment and directly run it.
+If the invocation doesn't immediately work, you might need to run `pipx ensurepath`.
+After the first time, it's enough to just run `pipx run micro-swe-agent`.
+
+</details>
+
+## 🚀 Developer version
 
 ```bash
 git clone https://github.com/SWE-agent/micro-swe-agent.git
@@ -38,19 +42,19 @@ cd micro-swe-agent
 pip install -e .
 ```
 
-Now you can run the default local agent as
+And welcome your new friend:
 
 ```bash
 micro
 ```
 
-But you can also just run the executables as
+which you can also envoke as
 
 ```bash
 python microswea/run/local.py
 ```
 
-## Configuration
+## ⚙️ Configure
 
 All global configuration can be either set as environment variables, or
 in the `.env` file (the exact location is printed when you run `micro`).
@@ -62,7 +66,7 @@ MSWEA_LOCAL_CONFIG_PATH="/path/to/your/own/config"
 MSWEA_MODEL_NAME="claude-sonnet-4-20250514"
 ```
 
-## Powering up <a target="powerup"/>
+## ⚡️ Power up <a target="powerup"/>
 
 We provide several different entry points to the agent,
 for example [hello world](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run/hello_world.py),
@@ -81,7 +85,7 @@ things that you might want to do.
 
 You can override the default entry point by setting the `MSWEA_DEFAULT_RUN` environment variable to the import path of your run script.
 
-## Contributing
+## ❤️ Contributing
 
 We happily accept contributions!
 
