@@ -1,5 +1,5 @@
-"""Model implementations for micro-SWE-agent.
-You can ignore this file if you explicitly set your model in your run script.
+"""This file provides convenience functions for selecting models.
+You can ignore this file completelyif you explicitly set your model in your run script.
 """
 
 
@@ -13,8 +13,9 @@ from microswea import Model, global_config_file
 
 console = Console()
 
-def get_model(model_name: str | None = None, config: dict | None = None) -> Model:
-    resolved_model_name = get_model_name(model_name, config)
+def get_model(input_model_name: str | None = None, config: dict | None = None) -> Model:
+    """Get an initialized model object from any kind of user input or settings."""
+    resolved_model_name = get_model_name(input_model_name, config)
     if config is None:
         config = {}
     config = copy.deepcopy(config)
@@ -27,6 +28,7 @@ def get_model(model_name: str | None = None, config: dict | None = None) -> Mode
 
 
 def get_model_name(input_model_name: str | None = None, config: dict | None = None) -> str:
+    """Get a model name from any kind of user input or settings."""
     if config is None:
         config = {}
     if input_model_name:
@@ -39,6 +41,7 @@ def get_model_name(input_model_name: str | None = None, config: dict | None = No
 
 
 def get_model_class(model_name: str) -> type:
+    """Select the best model class for a given model name."""
     if any(s in model_name for s in ["anthropic", "sonnet", "opus"]):
         from microswea.models.anthropic import AnthropicModel
 
@@ -49,6 +52,7 @@ def get_model_class(model_name: str) -> type:
 
 
 def prompt_for_model_name() -> str:
+    """Prompt the user for a model name and store it in the global config file."""
     msg = (
         "[bold yellow]Choose your language model[/bold yellow]\n"
         "Popular models:\n"

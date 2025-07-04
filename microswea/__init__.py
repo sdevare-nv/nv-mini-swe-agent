@@ -1,4 +1,12 @@
-"""Nano SWE Agent - A simple AI software engineering agent."""
+"""
+This file provides:
+
+- Path settings for global config file & relative directories
+- Version numbering
+- Protocols for the core components of micro-swe-agent.
+  By the magic of protocols & duck typing, you can pretty much ignore them,
+  unless you want the static type checking.
+"""
 
 __version__ = "1.0.0.dev3"
 
@@ -18,6 +26,10 @@ Console().print(
     f"Your config is stored in [bold green]'{global_config_file}'[/bold green]"
 )
 dotenv.load_dotenv(dotenv_path=global_config_file)
+
+
+# === Protocols ===
+# You can ignore them unless you want static type checking.
 
 
 class Model(Protocol):
