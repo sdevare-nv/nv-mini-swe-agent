@@ -5,14 +5,14 @@
 
 </div>
 
-`micro-SWE-agent` provides
+`micro-SWE-agent`:
 
 - An AI agent implemented in [100 lines of python](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/agents/default.py)!
 Okay, maybe add another 100 lines total for the [environment](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/environments/local.py),
 [model config](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/models/litellm_model.py),
 and [run script](https://github.com/SWE-agent/micro-swe-agent/blob/main/microswea/run/hello_world.py) -- but that's it, and no fancy packages used!
 This still packs a punch though: We resolve XX% of GitHub issues in the [SWE-bench verified benchmark](https://www.swebench.com/).
-- A few slightly extended variants that make turn this into your daily dev swiss army knive!
+- Also comes with slightly extended variants that make turn this into your daily dev swiss army knive!
 - Lots of additional [power-ups](#powering-up) to choose from to turn this into your personal tool!
 
 Use `micro-SWE-agent` to
@@ -30,7 +30,7 @@ The project builds on our experience building [SWE-agent](https://swe-agent.com)
 pip install pipx && pipx run --spec git+ssh://git@github.com/SWE-agent/micro-swe-agent micro-swe-agent
 ```
 
-## Install & experiment
+## Install
 
 ```bash
 git clone https://github.com/SWE-agent/micro-swe-agent.git
