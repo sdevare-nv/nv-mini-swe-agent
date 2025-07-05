@@ -1,7 +1,7 @@
 import re
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from jinja2 import Template
 from rich.console import Console
@@ -88,7 +88,10 @@ class DefaultAgent:
         actions = re.findall(r"```[a-zA-Z]*\n(.*?)(?=\n```|```)", message, re.DOTALL)
         if len(actions) == 1:
             return actions[0].strip()
-        raise NonTerminatingException("Please always provide EXACTLY ONE action in triple backticks.")
+        raise NonTerminatingException(
+            "Please always provide EXACTLY ONE action in triple backticks."
+            " To terminate, FIRST line of command OUTPUT must be 'MICRO_SWE_AGENT_FINAL_OUTPUT'."
+        )
 
     def execute_action(self, action: str) -> str:
         try:
