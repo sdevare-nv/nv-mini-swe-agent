@@ -56,7 +56,7 @@ Both variants are hard to understand.
 A hackable tool, not a black box.
 
 Unlike other agents (including our own [swe-agent](https://swe-agent.com/latest/)),
-it is radiccally simpler, because it
+it is radically simpler, because it
 
 - Does not have any tools other than bash — it doesn't even use the tool-calling interface of the LMs.
 - Has a completely linear history — every step of the agent just appends to the messages and that's it.
