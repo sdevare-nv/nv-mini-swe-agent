@@ -1,4 +1,9 @@
-from microswea.agents.interactive_textual import AgentApp
+import logging
+from unittest.mock import Mock
+
+import pytest
+
+from microswea.agents.interactive_textual import AddLogEmitCallback, AgentApp
 from microswea.environments.local import LocalEnvironment
 from microswea.models.test_models import DeterministicModel
 
@@ -24,6 +29,7 @@ def get_screen_text(app: AgentApp) -> str:
     return "\n".join(text_parts)
 
 
+@pytest.mark.slow
 async def test_everything_integration_test():
     app = AgentApp(
         model=DeterministicModel(
@@ -96,3 +102,280 @@ async def test_everything_integration_test():
         await pilot.press("$")
         assert "Step 6/6" in app.sub_title
         assert "MICRO_SWE_AGENT_FINAL_OUTPUT" in get_screen_text(app)
+
+
+# --- New specific tests ---
+
+
+def test_messages_to_steps_edge_cases():
+    """Test the _messages_to_steps function with various edge cases."""
+    from microswea.agents.interactive_textual import _messages_to_steps
+
+    # Empty messages
+    assert _messages_to_steps([]) == []
+
+    # Single system message
+    messages = [{"role": "system", "content": "Hello"}]
+    assert _messages_to_steps(messages) == [messages]
+
+    # User message ends a step
+    messages = [
+        {"role": "system", "content": "System"},
+        {"role": "assistant", "content": "Assistant"},
+        {"role": "user", "content": "User1"},
+        {"role": "assistant", "content": "Assistant2"},
+        {"role": "user", "content": "User2"},
+    ]
+    expected = [
+        [
+            {"role": "system", "content": "System"},
+            {"role": "assistant", "content": "Assistant"},
+            {"role": "user", "content": "User1"},
+        ],
+        [{"role": "assistant", "content": "Assistant2"}, {"role": "user", "content": "User2"}],
+    ]
+    assert _messages_to_steps(messages) == expected
+
+    # No user messages (incomplete step)
+    messages = [
+        {"role": "system", "content": "System"},
+        {"role": "assistant", "content": "Assistant"},
+    ]
+    expected = [messages]
+    assert _messages_to_steps(messages) == expected
+
+
+async def test_empty_agent_content():
+    """Test app behavior with no messages."""
+    app = AgentApp(
+        model=DeterministicModel(outputs=[]),
+        env=LocalEnvironment(),
+        problem_statement="Empty test",
+        confirm_actions=False,
+    )
+    async with app.run_test() as pilot:
+        # Initially should show waiting message
+        await pilot.pause(0.1)
+        content = get_screen_text(app)
+        assert "Waiting for agent to start" in content or "You are a helpful assistant" in content
+
+
+async def test_log_message_filtering():
+    """Test that warning and error log messages trigger notifications."""
+    app = AgentApp(
+        model=DeterministicModel(outputs=["/warning Test warning message", "Normal response"]),
+        env=LocalEnvironment(),
+        problem_statement="Log test",
+        confirm_actions=False,
+    )
+
+    # Mock the notify method to capture calls
+    app.notify = Mock()
+
+    async with app.run_test() as pilot:
+        await pilot.pause(0.2)
+
+        # Verify warning was emitted and handled (note the extra space in the actual format)
+        app.notify.assert_called_with("[WARNING]  Test warning message", severity="warning")
+
+
+async def test_list_content_rendering():
+    """Test rendering of messages with list content vs string content."""
+    # Create a model that will add messages with list content
+    app = AgentApp(
+        model=DeterministicModel(outputs=["Simple response"]),
+        env=LocalEnvironment(),
+        problem_statement="Content test",
+        confirm_actions=False,
+    )
+
+    # Manually add a message with list content to test rendering
+    app.agent.messages.append({"role": "assistant", "content": [{"text": "Line 1"}, {"text": "Line 2"}]})
+
+    async with app.run_test() as pilot:
+        await pilot.pause(0.1)
+        app.update_content()
+        assert "Line 1\nLine 2" in get_screen_text(app)
+
+
+async def test_confirmation_rejection_with_message():
+    """Test rejecting an action with a custom message."""
+    app = AgentApp(
+        model=DeterministicModel(outputs=["Test thought\n```bash\necho 'test'\n```"]),
+        env=LocalEnvironment(),
+        problem_statement="Rejection test",
+        confirm_actions=True,
+    )
+
+    async with app.run_test() as pilot:
+        await pilot.pause(0.1)
+
+        # Wait for confirmation prompt
+        while app.agent_state != "AWAITING_CONFIRMATION":
+            await pilot.pause(0.1)
+
+        # Start rejection
+        await pilot.press("backspace")
+        assert app.confirmation_container.rejecting is True
+
+        # Type rejection message
+        rejection_input = app.confirmation_container.query_one("#rejection-input")
+        rejection_input.text = "Not safe to run"
+
+        # Submit rejection
+        await pilot.press("ctrl+d")
+        await pilot.pause(0.1)
+
+        # Verify the command was rejected with the message
+        assert "Command not executed: Not safe to run" in get_screen_text(app)
+
+
+async def test_agent_with_cost_limit():
+    """Test agent behavior when cost limit is exceeded."""
+    app = AgentApp(
+        model=DeterministicModel(outputs=["Response 1", "Response 2"]),
+        env=LocalEnvironment(),
+        problem_statement="Cost limit test",
+        confirm_actions=False,
+        cost_limit=0.01,  # Very low limit
+    )
+
+    # Set model cost to exceed limit
+    app.agent.model.cost = 0.02
+
+    async with app.run_test() as pilot:
+        await pilot.pause(0.2)
+
+        # Should eventually stop due to cost limit
+        assert "limits_exceeded" in get_screen_text(app) and app.agent_state == "STOPPED"
+
+
+async def test_agent_with_step_limit():
+    """Test agent behavior when step limit is exceeded."""
+    app = AgentApp(
+        model=DeterministicModel(outputs=["Response 1", "Response 2", "Response 3"]),
+        env=LocalEnvironment(),
+        problem_statement="Step limit test",
+        confirm_actions=False,
+        step_limit=2,
+    )
+
+    async with app.run_test() as pilot:
+        await pilot.pause(0.3)
+
+        # Should stop due to step limit
+        assert "limits_exceeded" in get_screen_text(app) and app.agent_state == "STOPPED"
+
+
+async def test_whitelist_actions_bypass_confirmation():
+    """Test that whitelisted actions bypass confirmation."""
+    app = AgentApp(
+        model=DeterministicModel(outputs=["Whitelisted action\n```bash\necho 'safe'\n```"]),
+        env=LocalEnvironment(),
+        problem_statement="Whitelist test",
+        confirm_actions=True,
+        whitelist_actions=[r"echo.*"],
+    )
+
+    async with app.run_test() as pilot:
+        await pilot.pause(0.2)
+
+        # Should execute without confirmation because echo is whitelisted
+        assert app.agent_state != "AWAITING_CONFIRMATION"
+        assert "echo 'safe'" in get_screen_text(app)
+
+
+async def test_confirmation_container_multiple_actions():
+    """Test confirmation container handling multiple actions in sequence."""
+    app = AgentApp(
+        model=DeterministicModel(
+            outputs=[
+                "First action\n```bash\necho '1'\n```",
+                "Second action\n```bash\necho '2'\n```",
+            ]
+        ),
+        env=LocalEnvironment(),
+        problem_statement="Multiple actions test",
+        confirm_actions=True,
+    )
+
+    async with app.run_test() as pilot:
+        await pilot.pause(0.1)
+
+        # Confirm first action
+        while app.agent_state != "AWAITING_CONFIRMATION":
+            await pilot.pause(0.1)
+        assert "echo '1'" in get_screen_text(app)
+        await pilot.press("enter")
+
+        # Wait for and confirm second action
+        await pilot.pause(0.1)
+        while app.agent_state != "AWAITING_CONFIRMATION":
+            await pilot.pause(0.1)
+        assert "echo '2'" in get_screen_text(app)
+        await pilot.press("enter")
+
+
+async def test_scrolling_behavior():
+    """Test scrolling up and down behavior."""
+    app = AgentApp(
+        model=DeterministicModel(outputs=["Long response" * 100]),
+        env=LocalEnvironment(),
+        problem_statement="Scroll test",
+        confirm_actions=False,
+    )
+
+    async with app.run_test() as pilot:
+        await pilot.pause(0.1)
+
+        # Test scrolling
+        vs = app.query_one("VerticalScroll")
+        initial_y = vs.scroll_target_y
+        await pilot.press("j")  # scroll down
+        assert vs.scroll_target_y > initial_y
+        await pilot.press("k")  # scroll up
+
+
+def test_log_handler_cleanup():
+    """Test that log handler is properly cleaned up."""
+    initial_handlers = len(logging.getLogger().handlers)
+
+    app = AgentApp(
+        model=DeterministicModel(outputs=["Simple response"]),
+        env=LocalEnvironment(),
+        problem_statement="Cleanup test",
+        confirm_actions=False,
+    )
+
+    # Handler should be added
+    assert len(logging.getLogger().handlers) == initial_handlers + 1
+
+    # Simulate unmount
+    app.on_unmount()
+
+    # Handler should be removed
+    assert len(logging.getLogger().handlers) == initial_handlers
+
+
+def test_add_log_emit_callback():
+    """Test the AddLogEmitCallback handler directly."""
+
+    callback_called = False
+    test_record = None
+
+    def test_callback(record):
+        nonlocal callback_called, test_record
+        callback_called = True
+        test_record = record
+
+    handler = AddLogEmitCallback(test_callback)
+
+    # Create a log record
+    record = logging.LogRecord(
+        name="test", level=logging.WARNING, pathname="test.py", lineno=1, msg="Test message", args=(), exc_info=None
+    )
+
+    handler.emit(record)
+
+    assert callback_called
+    assert test_record == record
