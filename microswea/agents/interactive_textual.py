@@ -258,7 +258,7 @@ class AgentApp(App):
             message_container = Vertical(classes="message-container")
             container.mount(message_container)
             message_container.mount(Static(message["role"].upper(), classes="message-header"))
-            message_container.mount(Static(content_str, classes="message-content"))
+            message_container.mount(Static(content_str, classes="message-content", markup=False))
 
         show_confirmation_prompt = (
             self.confirmation_container._pending_action is not None and self.i_step == len(items) - 1
