@@ -200,10 +200,7 @@ class AgentApp(App):
 
     def on_message_added(self) -> None:
         auto_follow = self.i_step == self.n_steps - 1
-        items = _messages_to_steps(self.agent.messages)
-        n_steps = len(items)
-        self.n_steps = n_steps
-
+        self.n_steps = len(_messages_to_steps(self.agent.messages))
         self.update_content()
         if auto_follow:
             self.action_last_step()
