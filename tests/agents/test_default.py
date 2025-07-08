@@ -1,6 +1,6 @@
 import pytest
 
-from microswea.agents.default import AgentConfig, DefaultAgent, NonTerminatingException
+from microswea.agents.default import DefaultAgent, NonTerminatingException
 from microswea.environments.local import LocalEnvironment
 from microswea.models.test_models import DeterministicModel
 
@@ -18,42 +18,39 @@ def test_successful_completion():
         problem_statement="Echo hello world then finish",
     )
 
-    result = agent.run()
-    assert result == "Task completed successfully"
+    assert agent.run() == "Task completed successfully"
     assert agent.model.n_calls == 2
     assert len(agent.messages) == 6  # system, user, assistant, user, assistant, user
 
 
 def test_step_limit_enforcement():
     """Test agent stops when step limit is reached."""
-    config = AgentConfig(step_limit=1)
     agent = DefaultAgent(
         model=DeterministicModel(
             outputs=["First command\n```bash\necho 'step1'\n```", "Second command\n```bash\necho 'step2'\n```"]
         ),
         env=LocalEnvironment(),
         problem_statement="Run multiple commands",
-        config_class=lambda **kwargs: config,
+        step_limit=1,
     )
 
-    result = agent.run()
-    assert result == "limits_exceeded"
+    assert agent.run() == "limits_exceeded"
     assert agent.model.n_calls == 1
 
 
 def test_cost_limit_enforcement():
     """Test agent stops when cost limit is reached."""
-    config = AgentConfig(cost_limit=0.5)
-    # Force model cost to exceed limit
     model = DeterministicModel(outputs=["```bash\necho 'test'\n```"])
     model.cost = 1.0
 
     agent = DefaultAgent(
-        model=model, env=LocalEnvironment(), problem_statement="Test cost limit", config_class=lambda **kwargs: config
+        model=model,
+        env=LocalEnvironment(),
+        problem_statement="Test cost limit",
+        cost_limit=0.5,
     )
 
-    result = agent.run()
-    assert result == "limits_exceeded"
+    assert agent.run() == "limits_exceeded"
 
 
 def test_format_error_handling():
@@ -70,19 +67,17 @@ def test_format_error_handling():
         problem_statement="Test format errors",
     )
 
-    result = agent.run()
-    assert result == "done"
+    assert agent.run() == "done"
     assert agent.model.n_calls == 3
     # Should have error messages in conversation
-    error_messages = [
-        msg for msg in agent.messages if "Please always provide EXACTLY ONE action" in msg.get("content", "")
-    ]
-    assert len(error_messages) == 2
+    assert (
+        len([msg for msg in agent.messages if "Please always provide EXACTLY ONE action" in msg.get("content", "")])
+        == 2
+    )
 
 
 def test_timeout_handling():
     """Test agent handles command timeouts properly."""
-    env = LocalEnvironment(timeout=1)  # Very short timeout
     agent = DefaultAgent(
         model=DeterministicModel(
             outputs=[
@@ -90,15 +85,13 @@ def test_timeout_handling():
                 "Quick finish\n```bash\necho 'MICRO_SWE_AGENT_FINAL_OUTPUT'\necho 'recovered'\n```",
             ]
         ),
-        env=env,
+        env=LocalEnvironment(timeout=1),  # Very short timeout
         problem_statement="Test timeout handling",
     )
 
-    result = agent.run()
-    assert result == "recovered"
+    assert agent.run() == "recovered"
     # Should have timeout error message
-    timeout_messages = [msg for msg in agent.messages if "timed out" in msg.get("content", "")]
-    assert len(timeout_messages) == 1
+    assert len([msg for msg in agent.messages if "timed out" in msg.get("content", "")]) == 1
 
 
 def test_parse_action_success():
@@ -151,13 +144,11 @@ def test_message_history_tracking():
     assert agent.messages[1]["role"] == "user"
     assert "Track messages" in agent.messages[1]["content"]
 
-    result = agent.run()
+    assert agent.run() == "done"
 
     # After completion should have full conversation
-    assert result == "done"
     assert len(agent.messages) == 6
-    roles = [msg["role"] for msg in agent.messages]
-    assert roles == ["system", "user", "assistant", "user", "assistant", "user"]
+    assert [msg["role"] for msg in agent.messages] == ["system", "user", "assistant", "user", "assistant", "user"]
 
 
 def test_multiple_steps_before_completion():
@@ -175,8 +166,7 @@ def test_multiple_steps_before_completion():
         problem_statement="Multi-step task",
     )
 
-    result = agent.run()
-    assert result == "completed all steps"
+    assert agent.run() == "completed all steps"
     assert agent.model.n_calls == 4
 
     # Check that all intermediate outputs are captured (final step doesn't get observation due to termination)
@@ -191,23 +181,18 @@ def test_multiple_steps_before_completion():
 
 def test_custom_config():
     """Test agent works with custom configuration."""
-    config = AgentConfig(
-        system_template="You are a test assistant.",
-        instance_template="Task: {{problem_statement}}. Return bash command.",
-        step_limit=2,
-        cost_limit=1.0,
-    )
-
     agent = DefaultAgent(
         model=DeterministicModel(
             outputs=["Test response\n```bash\necho 'MICRO_SWE_AGENT_FINAL_OUTPUT'\necho 'custom config works'\n```"]
         ),
         env=LocalEnvironment(),
         problem_statement="Test custom config",
-        config_class=lambda **kwargs: config,
+        system_template="You are a test assistant.",
+        instance_template="Task: {{problem_statement}}. Return bash command.",
+        step_limit=2,
+        cost_limit=1.0,
     )
 
-    result = agent.run()
-    assert result == "custom config works"
+    assert agent.run() == "custom config works"
     assert agent.messages[0]["content"] == "You are a test assistant."
     assert "Test custom config" in agent.messages[1]["content"]
