@@ -6,19 +6,21 @@ alwaysApply: true
 
 # Style guide
 
-- Target python 3.11 or higher
-- Use python with type annotations. Use `list` instead of `List`.
-- Use `pathlib` instead of `os.path`. Use `Path.read_text()` over `with ...open()` constructs.
-- Use `typer` to add interfaces
-- Keep code comments to a minimum and only highlight particularly logically challenging things
-- Do not append to the README unless specifically requested
-- Use `jinja` for formatting templates
-- Use `dataclass` for keeping track config
-- Do not catch exceptions unless explicitly told to.
-- Write concise, short, minimal code.
+1. Target python 3.11 or higher
+2. Use python with type annotations. Use `list` instead of `List`.
+3. Use `pathlib` instead of `os.path`. Use `Path.read_text()` over `with ...open()` constructs.
+4. Use `typer` to add interfaces
+5. Keep code comments to a minimum and only highlight particularly logically challenging things
+6. Do not append to the README unless specifically requested
+7. Use `jinja` for formatting templates
+8. Use `dataclass` for keeping track config
+9. Do not catch exceptions unless explicitly told to.
+10. Write concise, short, minimal code.
+11. In most cases, avoid initializing variables just to pass them to a function. Instead just pass the expression to the function directly.
 
 ## Test style
 
-- Use `pytest`, not `unittest`.
-- <IMPORTANT>Do not mock/patch anything that you're not explicitly asked to do</IMPORTANT>
-- Avoid writing trivial tests. Every test should test for at least one, preferably multiple points of failure
+1. Use `pytest`, not `unittest`.
+2. <IMPORTANT>Do not mock/patch anything that you're not explicitly asked to do</IMPORTANT>
+3. Avoid writing trivial tests. Every test should test for at least one, preferably multiple points of failure
+4. Avoid splitting up code in multiple lines like this: `a=func()\n assert a=b`. Instead, just do `assert func() == b`
