@@ -165,7 +165,6 @@ class AgentApp(App):
         self.agent = TextualAgent(self, model=model, env=env, problem_statement=problem_statement, **kwargs)
         self._i_step = 0
         self.n_steps = 1
-        self.title = "micro-SWE-agent"
         self.confirmation_container = ConfirmationPromptContainer(self)
         self.log_handler = AddLogEmitCallback(lambda record: self.call_from_thread(self.on_log_message_emitted, record))
         logging.getLogger().addHandler(self.log_handler)
@@ -256,12 +255,12 @@ class AgentApp(App):
         self.refresh()
 
     def _update_headers(self) -> None:
-        """Update just the subtitle with current state and spinner if needed."""
+        """Update just the title with current state and spinner if needed."""
         status_text = self.agent_state
         if self.agent_state == "RUNNING":
             spinner_frame = str(self._spinner.render(time.time())).strip()
             status_text = f"{self.agent_state} {spinner_frame}"
-        self.sub_title = f"Step {self.i_step + 1}/{self.n_steps} - {status_text} - Cost: ${self.agent.model.cost:.2f}"
+        self.title = f"Step {self.i_step + 1}/{self.n_steps} - {status_text} - Cost: ${self.agent.model.cost:.2f}"
         self.query_one("Header").set_class(self.agent_state == "RUNNING", "running")
 
     # --- Textual bindings ---
