@@ -7,8 +7,10 @@ import logging
 import os
 import re
 import threading
+import time
 from pathlib import Path
 
+from rich.spinner import Spinner
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Vertical, VerticalScroll
@@ -167,6 +169,7 @@ class AgentApp(App):
         self.confirmation_container = ConfirmationPromptContainer(self)
         self.log_handler = AddLogEmitCallback(lambda record: self.call_from_thread(self.on_log_message_emitted, record))
         logging.getLogger().addHandler(self.log_handler)
+        self._spinner = Spinner("dots")
 
     # --- Basics ---
 
@@ -194,6 +197,7 @@ class AgentApp(App):
     def on_mount(self) -> None:
         self.agent_state = "RUNNING"
         self.update_content()
+        self.set_interval(1 / 8, self._update_headers)
         threading.Thread(target=self.agent.run, daemon=True).start()
 
     # --- Reacting to events ---
@@ -248,13 +252,17 @@ class AgentApp(App):
         if self.confirmation_container.display:
             self.confirmation_container.focus()
 
-        self.sub_title = (
-            f"Step {self.i_step + 1}/{len(items)} - {self.agent_state} - Cost: ${self.agent.model.cost:.2f}"
-        )
-        header = self.query_one("Header")
-        header.set_class(self.agent_state == "RUNNING", "running")
-
+        self._update_headers()
         self.refresh()
+
+    def _update_headers(self) -> None:
+        """Update just the subtitle with current state and spinner if needed."""
+        status_text = self.agent_state
+        if self.agent_state == "RUNNING":
+            spinner_frame = str(self._spinner.render(time.time())).strip()
+            status_text = f"{self.agent_state} {spinner_frame}"
+        self.sub_title = f"Step {self.i_step + 1}/{self.n_steps} - {status_text} - Cost: ${self.agent.model.cost:.2f}"
+        self.query_one("Header").set_class(self.agent_state == "RUNNING", "running")
 
     # --- Textual bindings ---
 
