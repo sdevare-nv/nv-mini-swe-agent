@@ -200,7 +200,7 @@ class AgentApp(App):
         with Container(id="main"):
             with VerticalScroll():
                 yield Vertical(id="content")
-                yield self.confirmation_container
+            yield self.confirmation_container
         yield Footer()
 
     def on_mount(self) -> None:
@@ -266,6 +266,8 @@ class AgentApp(App):
         if show_confirmation_prompt:
             self.confirmation_container.display = True
             self.confirmation_container.focus()
+            vs = self.query_one(VerticalScroll)
+            vs.scroll_end(animate=False)
 
         if self.confirmation_container._pending_action is not None:
             self.agent_state = "AWAITING_CONFIRMATION"
