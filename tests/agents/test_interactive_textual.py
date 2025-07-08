@@ -104,9 +104,6 @@ async def test_everything_integration_test():
         assert "MICRO_SWE_AGENT_FINAL_OUTPUT" in get_screen_text(app)
 
 
-# --- New specific tests ---
-
-
 def test_messages_to_steps_edge_cases():
     """Test the _messages_to_steps function with various edge cases."""
     from microswea.agents.interactive_textual import _messages_to_steps
@@ -163,7 +160,13 @@ async def test_empty_agent_content():
 async def test_log_message_filtering():
     """Test that warning and error log messages trigger notifications."""
     app = AgentApp(
-        model=DeterministicModel(outputs=["/warning Test warning message", "Normal response"]),
+        model=DeterministicModel(
+            outputs=[
+                "/warning Test warning message",
+                "Normal response",
+                "end: \n```\necho MICRO_SWE_AGENT_FINAL_OUTPUT\n```",
+            ]
+        ),
         env=LocalEnvironment(),
         problem_statement="Log test",
         confirm_actions=False,
