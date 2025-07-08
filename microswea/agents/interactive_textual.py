@@ -85,12 +85,12 @@ class ConfirmationPromptContainer(Container):
 
     def compose(self) -> ComposeResult:
         yield Static(
-            "Press Enter to confirm action or BACKSPACE to reject",
+            "Press [bold]ENTER[/bold] to confirm action or [bold]BACKSPACE[/bold] to reject (or [bold]y[/bold] to toggle YOLO mode)",
             classes="confirmation-prompt",
         )
         yield TextArea(id="rejection-input")
         rejection_help = Static(
-            "Press Ctrl+D to submit rejection message",
+            "Press [bold]Ctrl+D[/bold] to submit rejection message",
             id="rejection-help",
             classes="rejection-help",
         )

@@ -50,38 +50,41 @@ async def test_everything_integration_test():
         assert app.agent_state == "RUNNING"
         assert "You are a helpful assistant that can do anything." in get_screen_text(app)
         assert "press enter" not in get_screen_text(app).lower()
-        assert "Step 1/1" in app.sub_title
+        assert "Step 1/1" in app.title
         await pilot.pause(0.5)
-        assert "Step 2/2" in app.sub_title
+        assert "Step 2/2" in app.title
         assert app.agent_state == "AWAITING_CONFIRMATION"
-        assert "AWAITING_CONFIRMATION" in app.sub_title
+        assert "AWAITING_CONFIRMATION" in app.title
         assert "echo '1'" in get_screen_text(app)
-        assert "press enter to confirm action or backspace to reject" in get_screen_text(app).lower()
+        assert (
+            "press [bold]enter[/bold] to confirm action or [bold]backspace[/bold] to reject"
+            in get_screen_text(app).lower()
+        )
         # Navigate to page 1
         await pilot.press("h")
-        assert "Step 1/2" in app.sub_title
+        assert "Step 1/2" in app.title
         assert "You are a helpful assistant that can do anything." in get_screen_text(app)
         assert "press enter" not in get_screen_text(app).lower()
         await pilot.press("h")
         # should remain on same page
-        assert "Step 1/2" in app.sub_title
+        assert "Step 1/2" in app.title
         assert "You are a helpful assistant that can do anything." in get_screen_text(app)
         # Back to current latest page
         await pilot.press("l")
-        assert "Step 2/2" in app.sub_title
+        assert "Step 2/2" in app.title
         # Confirm directly with enter
         await pilot.press("enter")
-        assert "Step 3/3" in app.sub_title
-        assert "AWAITING_CONFIRMATION" in app.sub_title
+        assert "Step 3/3" in app.title
+        assert "AWAITING_CONFIRMATION" in app.title
         assert "echo '2'" in get_screen_text(app)
         # Reject with message
         await pilot.press("backspace")
-        assert "Step 3/3" in app.sub_title
-        assert "AWAITING_CONFIRMATION" in app.sub_title
+        assert "Step 3/3" in app.title
+        assert "AWAITING_CONFIRMATION" in app.title
         assert "echo '2'" in get_screen_text(app)  # unchanged
         await pilot.press("ctrl+d")
         await pilot.pause(0.1)
-        assert "Step 4/4" in app.sub_title
+        assert "Step 4/4" in app.title
         assert "echo '3'" in get_screen_text(app)
         # Enter yolo mode
         assert pilot.app.agent.config.confirm_actions is True
@@ -90,17 +93,17 @@ async def test_everything_integration_test():
         await pilot.press("enter")  # still need to confirm once for step 3
         # next action will be executed automatically, so we see step 5 next
         await pilot.pause(0.1)
-        assert "Step 6/6" in app.sub_title
+        assert "Step 6/6" in app.title
         assert "echo 'MICRO_SWE_AGENT_FINAL_OUTPUT'" in get_screen_text(app)
         # await pilot.pause(0.1)
-        assert "STOPPED" in app.sub_title
+        assert "STOPPED" in app.title
         assert "press enter" not in get_screen_text(app).lower()
         # More navigation
         await pilot.press("0")
-        assert "Step 1/6" in app.sub_title
+        assert "Step 1/6" in app.title
         assert "You are a helpful assistant that can do anything." in get_screen_text(app)
         await pilot.press("$")
-        assert "Step 6/6" in app.sub_title
+        assert "Step 6/6" in app.title
         assert "MICRO_SWE_AGENT_FINAL_OUTPUT" in get_screen_text(app)
 
 
