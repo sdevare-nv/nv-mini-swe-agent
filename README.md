@@ -80,9 +80,9 @@ it is radically simpler, because it
 
 ```bash
 pip install pipx
-# Simple REPL-style UI
+# Simple UI
 pipx run --spec git+ssh://git@github.com/SWE-agent/micro-swe-agent micro
-# Pager-style UI
+# Textual UI
 pipx run --spec git+ssh://git@github.com/SWE-agent/micro-swe-agent micro2
 ```
 
@@ -117,9 +117,9 @@ pip install -e .
 And welcome your new friend:
 
 ```bash
-# Simple REPL-style UI
+# Simple UI
 micro
-# Pager-style UI
+# Textual UI
 micro2
 ```
 
