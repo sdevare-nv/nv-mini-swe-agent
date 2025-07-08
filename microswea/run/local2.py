@@ -41,7 +41,7 @@ def main(
         model=get_model(model, _config.get("model", {})),
         env=LocalEnvironment(),
         problem_statement=problem,
-        confirm_actions=not yolo,
+        **_config.get("agent", {}),
     )
 
     try:

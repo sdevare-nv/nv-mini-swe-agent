@@ -153,16 +153,14 @@ class AgentApp(App):
         Binding("y", "toggle_yolo", "Toggle YOLO Mode"),
     ]
 
-    def __init__(self, model, env, problem_statement: str, confirm_actions: bool):
+    def __init__(self, model, env, problem_statement: str, **kwargs):
         css_path = os.environ.get(
             "MSWEA_LOCAL2_STYLE_PATH", str(Path(__file__).parent.parent / "config" / "local2.tcss")
         )
         self.__class__.CSS = Path(css_path).read_text()
         super().__init__()
         self.agent_state = "UNINITIALIZED"
-        self.agent = TextualAgent(
-            self, model=model, env=env, problem_statement=problem_statement, confirm_actions=confirm_actions
-        )
+        self.agent = TextualAgent(self, model=model, env=env, problem_statement=problem_statement, **kwargs)
         self._i_step = 0
         self.n_steps = 1
         self.title = "micro-SWE-agent"
