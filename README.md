@@ -107,7 +107,7 @@ After the first time, it's enough to just run `pipx run micro-swe-agent`.
 
 </details>
 
-## 🚀 Developer version
+## 🚀 Developer version & python bindings
 
 ```bash
 git clone https://github.com/SWE-agent/micro-swe-agent.git
@@ -118,18 +118,21 @@ pip install -e .
 And welcome your new friend:
 
 ```bash
-# Simple UI
+# Simple UI (microswea/run/local.py)
 micro
-# Textual UI
+# Textual UI (microswea/run/local2.py)
 micro2
 ```
 
-which you can also evoke as
+Or with python bindings:
 
-```bash
-python microswea/run/local.py
-# or
-python microswea/run/local2.py
+```python
+agent = DefaultAgent(
+    LitellmModel(model_name="claude-sonnet-4-20250514"),
+    LocalEnvironment(),
+    "Write a python sudoku game for me",
+)
+agent.run()
 ```
 
 ## ⚙️ Configure
