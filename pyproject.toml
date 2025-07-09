@@ -44,12 +44,12 @@ dependencies = [
 
 [project.optional-dependencies]
 full = [
-    "datasets",
     "micro-swe-agent[dev]",
     "swe-rex",
 ]
 
 dev = [
+    "datasets",
     "pytest",
     "pytest-cov",
     "pytest-asyncio",
