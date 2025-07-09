@@ -37,7 +37,9 @@ class TextualAgent(DefaultAgent):
         try:
             exit_status, result = super().run(task)
         except Exception as e:
-            self.app.call_from_thread(self.app.on_agent_finished, "ERROR", str(e))
+            result = str(e)
+            self.app.call_from_thread(self.app.on_agent_finished, "ERROR", result)
+            return "ERROR", result
         else:
             self.app.call_from_thread(self.app.on_agent_finished, exit_status, result)
         return exit_status, result
