@@ -73,9 +73,9 @@ def process_instance(instance: dict, output_dir: Path, model: str) -> dict:
     combined_output = io.StringIO()
     with contextlib.redirect_stdout(combined_output), contextlib.redirect_stderr(combined_output):
         try:
-            result = agent.run()
+            exit_status, result = agent.run()
         except Exception as e:
-            result = f"Exception({str(e)})"
+            exit_status, result = type(e).__name__, str(e)
 
     data = {
         "instance_id": instance_id,
