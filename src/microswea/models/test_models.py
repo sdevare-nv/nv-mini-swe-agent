@@ -2,11 +2,14 @@ import logging
 import time
 from dataclasses import dataclass
 
+from microswea.models import GLOBAL_MODEL_STATS
+
 
 @dataclass
 class DeterministicModelConfig:
     outputs: list[str]
     model_name: str = "deterministic"
+    cost_per_call: float = 1.0
 
 
 class DeterministicModel:
@@ -20,7 +23,6 @@ class DeterministicModel:
         self.n_calls = 0
 
     def query(self, messages: list[dict[str, str]], **kwargs) -> str:  # noqa: ARG002
-        self.n_calls += 1
         self.current_index += 1
         output = self.config.outputs[self.current_index]
         if "/sleep" in output:
@@ -30,4 +32,7 @@ class DeterministicModel:
         if "/warning" in output:
             logging.warning(output.split("/warning")[1])
             return self.query(messages, **kwargs)
+        self.n_calls += 1
+        self.cost += self.config.cost_per_call
+        GLOBAL_MODEL_STATS.add(self.config.cost_per_call)
         return output
