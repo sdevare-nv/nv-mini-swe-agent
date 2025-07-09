@@ -65,15 +65,39 @@ it is radically simpler, because it
 
 </details>
 
-<div align="center">
+<table>
+<tr>
+<td width="50%">
+<strong>Simple UI</strong> (<code>micro</code>)<br/>
+<img width="600px" src="docs/assets/micro.png">
+</td>
+<td>
+<strong>Textual UI</strong> (<code>micro2</code>)<br/>
+<img width="600px" src="docs/assets/micro2.png">
+</td>
+</tr>
+<tr>
+<td>
+<strong>Python bindings</strong><br/>
 
-**Simple UI**<br/>
-<img width=600px src="docs/assets/micro.png">
+```python
+agent = DefaultAgent(
+    LitellmModel(model_name=...),
+    LocalEnvironment(),
+    "Write a python sudoku game for me",
+)
+agent.run()
+```
 
-**Textual UI**<br/>
-<img width=600px src="docs/assets/micro2.png">
+</td>
+<td>
+<strong>More in the docs</strong>
+  
+- TBD
 
-</div>
+</td>
+</tr>
+</table>
 
 ## 🔥 Try it!
 
@@ -107,7 +131,7 @@ After the first time, it's enough to just run `pipx run micro-swe-agent`.
 
 </details>
 
-## 🚀 Developer version & python bindings
+## 🚀 Developer version
 
 ```bash
 git clone https://github.com/SWE-agent/micro-swe-agent.git
@@ -122,17 +146,6 @@ And welcome your new friend:
 micro
 # Textual UI (microswea/run/local2.py)
 micro2
-```
-
-Or with python bindings:
-
-```python
-agent = DefaultAgent(
-    AnthropicModel(model_name="claude-sonnet-4-20250514"),
-    LocalEnvironment(),
-    "Write a python sudoku game for me",
-)
-agent.run()
 ```
 
 ## ⚙️ Configure
