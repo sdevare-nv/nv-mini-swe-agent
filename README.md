@@ -13,12 +13,13 @@ In 2024, [SWE-bench](https://swe-bench.com) & [SWE-agent](https://swe-agent.com)
 - 🧑‍💻 **Hackers & power users** who like their tools like their scripts: **short, sharp, and readable**
 - 🐳 **Engineers** who want something **trivial to sandbox & to deploy anywhere**
 
-More to love:
+Here's some details:
 
 - **🐜 Minimal**: Just [100 lines of python](https://github.com/SWE-agent/micro-swe-agent/blob/main/src/microswea/agents/default.py) (+100 total for [env](https://github.com/SWE-agent/micro-swe-agent/blob/main/src/microswea/environments/local.py),
 [model model](https://github.com/SWE-agent/micro-swe-agent/blob/main/src/microswea/models/litellm_model.py), [script](https://github.com/SWE-agent/micro-swe-agent/blob/main/src/microswea/run/hello_world.py)) — no fancy dependencies!
 - **💪 Powerful:** Resolves XX% of GitHub issues in the [SWE-bench verified benchmark](https://www.swebench.com/).
 - **🤗 Friendly:** Comes with **two convenient UIs** that will turn this into your daily dev swiss army knife!
+- **🍀 Environments:** In addition to local envs, you can use **docker**, **podman**, **singularity**, **apptainer**, and more
 - **🎓 Cutting edge:** Built by the Princeton & Stanford team behind [SWE-bench](https://swe-bench.com) and [SWE-agent](https://swe-agent.com).
 
 
