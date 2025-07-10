@@ -50,7 +50,7 @@ jobs:
       - name: Push to External Docs Repository
         if: github.ref == 'refs/heads/main'
         env:
-          REINDEER_TOKEN: ${{ secrets.REINDEER_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.REINDEER_TOKEN }}
         run: |
-          git remote add docs-repo https://${REINDEER_TOKEN}@github.com/klieret/mswea-docs.git
+          git remote add docs-repo https://github.com/klieret/mswea-docs.git
           git push docs-repo gh-pages:gh-pages
