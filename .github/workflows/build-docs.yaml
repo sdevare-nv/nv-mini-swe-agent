@@ -52,5 +52,5 @@ jobs:
         env:
           REINDEER_TOKEN: ${{ secrets.REINDEER_TOKEN }}
         run: |
-          git remote add docs-repo https://x-access-token:${REINDEER_TOKEN}@github.com/klieret/mswea-docs.git
+          git remote add docs-repo https://${REINDEER_TOKEN}@github.com/klieret/mswea-docs.git
           git push docs-repo gh-pages:gh-pages
