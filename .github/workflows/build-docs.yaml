@@ -52,5 +52,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.REINDEER_TOKEN }}
         run: |
+          # https://stackoverflow.com/questions/64374179/how-to-push-to-another-repository-in-github-actions
+          git config --unset-all http.https://github.com/.extraheader
           git remote add docs-repo https://github.com/klieret/mswea-docs.git
           git push docs-repo gh-pages:gh-pages
