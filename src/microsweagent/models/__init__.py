@@ -87,7 +87,7 @@ def prompt_for_model_name() -> str:
     msg = (
         "[bold yellow]Choose your language model[/bold yellow]\n"
         "Popular models:\n"
-        "[bold green]claude-3-5-sonnet-20241022[/bold green]\n[bold green]gpt-4o[/bold green]\n"
+        "[bold green]claude-sonnet-4-20250514[/bold green]\n[bold green]gpt-4o[/bold green]\n"
         "[bold yellow]Your language model: [/bold yellow]"
     )
     choice = console.input(msg)
