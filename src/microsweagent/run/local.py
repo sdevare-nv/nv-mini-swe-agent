@@ -52,12 +52,14 @@ def main(
     if not problem:
         problem = get_multiline_task()
 
+    mode = "confirm" if not yolo else "yolo"
+
     # Use get_model to defer model imports (can take a while), but also to switch in
     # some optimized models (especially for anthropic)
     agent = InteractiveAgent(
         get_model(model, _config.get("model", {})),
         LocalEnvironment(),
-        **(_config.get("agent", {}) | {"confirm_actions": not yolo}),
+        **(_config.get("agent", {}) | {"mode": mode}),
     )
 
     exit_status, result = None, None
