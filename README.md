@@ -4,8 +4,9 @@
 <h1>The 100 line AI agent that solves GitHub issues & more</h1>
 </div>
 
-In 2024, [SWE-bench](https://swe-bench.com) & [SWE-agent](https://swe-agent.com) helped kickstart the agentic AI for software revolution. We now ask:
-**What if SWE-agent was 100x smaller, and still worked nearly as well?**
+In 2024, [SWE-bench](https://swe-bench.com) & [SWE-agent](https://swe-agent.com) helped kickstart the agentic AI for software revolution. 
+
+We now ask: **What if SWE-agent was 100x smaller, and still worked nearly as well?**
 
 `micro` is for
 
