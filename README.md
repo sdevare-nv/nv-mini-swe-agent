@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/micro-swe-agent-banner.svg" alt="micro-swe-agent banner" style="height: 12em"/>
+<a href="https://mellow-pegasus-562d44.netlify.app/"><img src="docs/assets/micro-swe-agent-banner.svg" alt="micro-swe-agent banner" style="height: 12em"/></a>
 <h1>The 100 line AI agent that solves GitHub issues & more</h1>
 </div>
 
@@ -112,7 +112,7 @@ agent.run("Write a python sudoku game for me")
 </tr>
 </table>
 
-## 🔥 Try it!
+## 🔥 Let's get started!
 
 (This will get simpler once we publish to pypi)
 
@@ -124,59 +124,12 @@ pipx run --spec git+ssh://git@github.com/SWE-agent/micro-swe-agent micro
 pipx run --spec git+ssh://git@github.com/SWE-agent/micro-swe-agent micro2
 ```
 
-<details>
+Read more in our [documentation](https://mellow-pegasus-562d44.netlify.app/):
 
-<summary>Details</summary>
-
-[pipx](https://pipx.pypa.io/stable/) will install `micro-swe-agent` in an isolated environment and directly run it.
-If the invocation doesn't immediately work, you might need to run `pipx ensurepath`.
-After the first time, it's enough to just run `pipx run micro-swe-agent`.
-
-</details>
-
-<details>
-
-<summary>Example prompts</summary>
-
-- Implement a Sudoku solver in python in the `sudoku` folder. Make sure the codebase is modular and well tested with pytest.
-- Please run pytest on the current project, discover failing unittests and help me fix them. Always make sure to test the final solution.
-- Help me document & type my codebase by adding short docstrings and type hints.
-
-</details>
-
-## 🚀 Developer version
-
-```bash
-git clone https://github.com/SWE-agent/micro-swe-agent.git
-cd micro-swe-agent
-pip install -e .
-```
-
-And welcome your new friend:
-
-```bash
-# Simple UI (microsweagent/run/local.py)
-micro
-# Textual UI (microsweagent/run/local2.py)
-micro2
-```
-
-## ⚙️ Configure
-
-All global configuration can be either set as environment variables, or
-in the `.env` file (the exact location is printed when you run `micro`).
-
-```bash
-# set default config for micro
-MSWEA_LOCAL_CONFIG_PATH="/path/to/your/own/config"
-# set default model
-MSWEA_MODEL_NAME="claude-sonnet-4-20250514"
-```
-
-## ⚡️ Power up <a target="powerup"/>
-
-
-
-## ❤️ Contributing
-
+* [Quick start guide](https://mellow-pegasus-562d44.netlify.app/quickstart/)
+* More on [`micro`](https://mellow-pegasus-562d44.netlify.app/usage/micro/) and [`micro2`](https://mellow-pegasus-562d44.netlify.app/usage/micro2/)
+* [Configuration](https://mellow-pegasus-562d44.netlify.app/configuration/)
+* [Power up with the cookbook](https://mellow-pegasus-562d44.netlify.app/cookbook/)
+* [FAQ](https://mellow-pegasus-562d44.netlify.app/faq/)
+* [Contribute!](https://mellow-pegasus-562d44.netlify.app/contributing/)
 
