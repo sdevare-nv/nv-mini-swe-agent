@@ -72,10 +72,10 @@ it is radically simpler, because it
 <table>
 <tr>
 <td width="50%">
-<strong>Simple UI</strong> (<code>micro</code>)
+<a href="https://mellow-pegasus-562d44.netlify.app/usage/micro/"><strong>Simple UI</strong></a> (<code>micro</code>)
 </td>
 <td>
-<strong>Textual UI</strong> (<code>micro2</code>)
+<a href="https://mellow-pegasus-562d44.netlify.app/usage/micro2/"><strong>Textual UI</strong></a> (<code>micro2</code>)
 </td>
 </tr>
 <tr>
@@ -92,10 +92,10 @@ it is radically simpler, because it
 </tr>
 <tr>
   <td>
-    <strong>Batch inference</strong>
+    <a href="https://mellow-pegasus-562d44.netlify.app/usage/swebench/"><strong>Batch inference</strong></a>
   </td>
   <td>
-    <strong>Trajectory browser</strong>
+    <a href="https://mellow-pegasus-562d44.netlify.app/usage/inspector/"><strong>Trajectory browser</strong></a>
   </td>
 <tr>
 <tr>
@@ -114,10 +114,10 @@ it is radically simpler, because it
   
 </tr>
 <td>
-<strong>Python bindings</strong>
+<a href="https://mellow-pegasus-562d44.netlify.app/cookbook/"><strong>Python bindings</strong></a>
 </td>
 <td>
-<strong>More in the docs</strong>
+<a href="https://mellow-pegasus-562d44.netlify.app/cookbook/"><strong>More in the docs</strong></a>
 </td>
 </tr>
 <tr>
@@ -128,12 +128,15 @@ agent = DefaultAgent(
     LitellmModel(model_name=...),
     LocalEnvironment(),
 )
-agent.run("Write a python sudoku game for me")
+agent.run("Write a sudoku game")
 ```
 </td>
 <td>
 
-- TBD
+* [Quick start](https://mellow-pegasus-562d44.netlify.app/quickstart/)
+* [Configuration](https://mellow-pegasus-562d44.netlify.app/configuration/)
+* [Power up](https://mellow-pegasus-562d44.netlify.app/cookbook/)
+
 </td>
 </tr>
 </table>
