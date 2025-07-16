@@ -25,9 +25,6 @@
     - Excellent performance on SWE-Bench
     - A trajectory browser
 
-!!! question "What models do you support?"
-
-
 ??? question "What are the limitations of micro-SWE-agent?"
 
     micro-SWE-agent can be extended trivially in various ways, the following assumes the default setup.
