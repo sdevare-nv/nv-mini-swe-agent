@@ -14,9 +14,45 @@ def strip_ansi_codes(text: str) -> str:
     return ansi_escape.sub("", text)
 
 
+def test_configure_if_first_time_called():
+    """Test that configure_if_first_time is called when running micro main."""
+    with (
+        patch("microsweagent.run.micro.configure_if_first_time") as mock_configure,
+        patch("microsweagent.run.micro.run_interactive") as mock_run_interactive,
+        patch("microsweagent.run.micro.get_model") as mock_get_model,
+        patch("microsweagent.run.micro.LocalEnvironment") as mock_env,
+        patch("microsweagent.run.micro.get_config_path") as mock_get_config_path,
+        patch("microsweagent.run.micro.yaml.safe_load") as mock_yaml_load,
+    ):
+        # Setup mocks
+        mock_model = Mock()
+        mock_get_model.return_value = mock_model
+        mock_environment = Mock()
+        mock_env.return_value = mock_environment
+        mock_config_path = Mock()
+        mock_config_path.read_text.return_value = ""
+        mock_get_config_path.return_value = mock_config_path
+        mock_yaml_load.return_value = {"agent": {"system_template": "test"}, "env": {}, "model": {}}
+        mock_run_interactive.return_value = Mock()
+
+        # Call main function
+        main(
+            config_spec=DEFAULT_CONFIG,
+            model_name="test-model",
+            task="Test task",
+            yolo=False,
+            output=None,
+            visual=False,
+        )
+
+        # Verify configure_if_first_time was called
+        mock_configure.assert_called_once()
+
+
 def test_micro_command_calls_run_interactive():
     """Test that micro command calls run_interactive when visual=False."""
     with (
+        patch("microsweagent.run.micro.configure_if_first_time"),
         patch("microsweagent.run.micro.run_interactive") as mock_run_interactive,
         patch("microsweagent.run.micro.get_model") as mock_get_model,
         patch("microsweagent.run.micro.LocalEnvironment") as mock_env,
@@ -55,6 +91,7 @@ def test_micro_command_calls_run_interactive():
 def test_micro_v_command_calls_run_textual():
     """Test that micro -v command calls run_textual when visual=True."""
     with (
+        patch("microsweagent.run.micro.configure_if_first_time"),
         patch("microsweagent.run.micro.run_textual") as mock_run_textual,
         patch("microsweagent.run.micro.get_model") as mock_get_model,
         patch("microsweagent.run.micro.LocalEnvironment") as mock_env,
@@ -93,6 +130,7 @@ def test_micro_v_command_calls_run_textual():
 def test_micro_calls_prompt_when_no_task_provided():
     """Test that micro calls prompt when no task is provided."""
     with (
+        patch("microsweagent.run.micro.configure_if_first_time"),
         patch("microsweagent.run.micro.prompt_session.prompt") as mock_prompt,
         patch("microsweagent.run.micro.run_interactive") as mock_run_interactive,
         patch("microsweagent.run.micro.get_model") as mock_get_model,
@@ -134,6 +172,7 @@ def test_micro_calls_prompt_when_no_task_provided():
 def test_micro_v_calls_prompt_when_no_task_provided():
     """Test that micro -v calls prompt when no task is provided."""
     with (
+        patch("microsweagent.run.micro.configure_if_first_time"),
         patch("microsweagent.run.micro.prompt_session.prompt") as mock_prompt,
         patch("microsweagent.run.micro.run_textual") as mock_run_textual,
         patch("microsweagent.run.micro.get_model") as mock_get_model,
@@ -175,6 +214,7 @@ def test_micro_v_calls_prompt_when_no_task_provided():
 def test_micro_with_explicit_model():
     """Test that micro works with explicitly provided model."""
     with (
+        patch("microsweagent.run.micro.configure_if_first_time"),
         patch("microsweagent.run.micro.run_interactive") as mock_run_interactive,
         patch("microsweagent.run.micro.get_model") as mock_get_model,
         patch("microsweagent.run.micro.LocalEnvironment") as mock_env,
@@ -216,6 +256,7 @@ def test_micro_with_explicit_model():
 def test_yolo_mode_sets_correct_agent_config():
     """Test that yolo mode sets the correct agent configuration."""
     with (
+        patch("microsweagent.run.micro.configure_if_first_time"),
         patch("microsweagent.run.micro.run_interactive") as mock_run_interactive,
         patch("microsweagent.run.micro.get_model") as mock_get_model,
         patch("microsweagent.run.micro.LocalEnvironment") as mock_env,
@@ -253,6 +294,7 @@ def test_yolo_mode_sets_correct_agent_config():
 def test_confirm_mode_sets_correct_agent_config():
     """Test that confirm mode (default) sets the correct agent configuration."""
     with (
+        patch("microsweagent.run.micro.configure_if_first_time"),
         patch("microsweagent.run.micro.run_interactive") as mock_run_interactive,
         patch("microsweagent.run.micro.get_model") as mock_get_model,
         patch("microsweagent.run.micro.LocalEnvironment") as mock_env,
