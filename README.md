@@ -114,10 +114,10 @@ it is radically simpler, because it
 
 </tr>
 <td>
-<a href="https://mellow-pegasus-562d44.netlify.app/cookbook/"><strong>Python bindings</strong></a>
+<a href="https://mellow-pegasus-562d44.netlify.app/advanced/cookbook/"><strong>Python bindings</strong></a>
 </td>
 <td>
-<a href="https://mellow-pegasus-562d44.netlify.app/cookbook/"><strong>More in the docs</strong></a>
+<a href="https://mellow-pegasus-562d44.netlify.app"><strong>More in the docs</strong></a>
 </td>
 </tr>
 <tr>
@@ -134,8 +134,8 @@ agent.run("Write a sudoku game")
 <td>
 
 * [Quick start](https://mellow-pegasus-562d44.netlify.app/quickstart/)
-* [Configuration](https://mellow-pegasus-562d44.netlify.app/configuration/)
-* [Power up](https://mellow-pegasus-562d44.netlify.app/cookbook/)
+* [Configuration](https://mellow-pegasus-562d44.netlify.app/advanced/configuration/)
+* [Power up](https://mellow-pegasus-562d44.netlify.app/advanced/cookbook/)
 
 </td>
 </tr>
@@ -154,8 +154,8 @@ Read more in our [documentation](https://mellow-pegasus-562d44.netlify.app/):
 
 * [Quick start guide](https://mellow-pegasus-562d44.netlify.app/quickstart/)
 * More on [`micro`](https://mellow-pegasus-562d44.netlify.app/usage/micro/) and [`micro2`](https://mellow-pegasus-562d44.netlify.app/usage/micro2/)
-* [Configuration](https://mellow-pegasus-562d44.netlify.app/configuration/)
-* [Power up with the cookbook](https://mellow-pegasus-562d44.netlify.app/cookbook/)
+* [Configuration](https://mellow-pegasus-562d44.netlify.app/advanced/configuration/)
+* [Power up with the cookbook](https://mellow-pegasus-562d44.netlify.app/advanced/cookbook/)
 * [FAQ](https://mellow-pegasus-562d44.netlify.app/faq/)
 * [Contribute!](https://mellow-pegasus-562d44.netlify.app/contributing/)
 
