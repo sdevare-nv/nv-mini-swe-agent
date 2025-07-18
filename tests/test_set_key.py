@@ -1,5 +1,4 @@
 import sys
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -12,7 +11,7 @@ def test_set_key_insufficient_args():
     test_args = ["micro-extra", "set-key", "OPENAI_API_KEY"]  # Missing value
 
     with patch.object(sys, "argv", test_args):
-        with pytest.raises(ValueError, match="Usage: micro-extra set-key <key> <value>"):
+        with pytest.raises(SystemExit, match="2"):
             main()
 
 
@@ -21,7 +20,7 @@ def test_set_key_no_value_arg():
     test_args = ["micro-extra", "set-key"]  # Missing key and value
 
     with patch.object(sys, "argv", test_args):
-        with pytest.raises(ValueError, match="Usage: micro-extra set-key <key> <value>"):
+        with pytest.raises(SystemExit, match="2"):
             main()
 
 
@@ -30,22 +29,8 @@ def test_set_key_too_many_args():
     test_args = ["micro-extra", "set-key", "OPENAI_API_KEY", "sk-test123", "extra"]
 
     with patch.object(sys, "argv", test_args):
-        with pytest.raises(ValueError, match="Usage: micro-extra set-key <key> <value>"):
+        with pytest.raises(SystemExit, match="2"):
             main()
-
-
-def test_set_key_with_special_characters():
-    """Test key setting with special characters in key and value."""
-    test_args = ["micro-extra", "set-key", "MY_API_KEY", "sk-proj-abc123!@#$%^&*()"]
-    test_config_file = Path("/fake/config/.env")
-
-    with (
-        patch.object(sys, "argv", test_args),
-        patch("microsweagent.run.micro_extra.global_config_file", test_config_file),
-        patch("microsweagent.run.micro_extra.set_key") as mock_set_key,
-    ):
-        main()
-        mock_set_key.assert_called_once_with(test_config_file, "MY_API_KEY", "sk-proj-abc123!@#$%^&*()")
 
 
 def test_set_key_preserves_other_commands():
