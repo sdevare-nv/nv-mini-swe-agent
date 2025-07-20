@@ -91,7 +91,7 @@ def main(
     if not task:
         console.print(
             "[bold yellow]What do you want to do?\n"
-            "[bold green]Up[/bold green]/[bold green]Down[/bold green] to bring up previous tasks or [bold green]Ctrl+R[/bold green] to search\n"
+            "[bold green]Up[/bold green]/[bold green]Down[/bold green] to bring up previous tasks or [bold green]Ctrl+R[/bold green] to search history\n"
         )
         task = prompt_session.prompt("", multiline=True, bottom_toolbar="Confirm with Esc, then Enter")
         console.print("[bold green]Got that, thanks![/bold green]")
