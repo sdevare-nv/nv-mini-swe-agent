@@ -138,6 +138,8 @@ agent.run("Write a sudoku game")
 <td>
 
 * [Quick start](https://mellow-pegasus-562d44.netlify.app/quickstart/)
+* [`micro`](https://mellow-pegasus-562d44.netlify.app/usage/micro/)
+* [FAQ](https://mellow-pegasus-562d44.netlify.app/faq/)
 * [Configuration](https://mellow-pegasus-562d44.netlify.app/advanced/configuration/)
 * [Power up](https://mellow-pegasus-562d44.netlify.app/advanced/cookbook/)
 
