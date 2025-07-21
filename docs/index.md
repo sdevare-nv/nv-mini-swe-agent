@@ -5,7 +5,7 @@
 </div>
 
 
-In 2024, [SWE-bench](https://swe-bench.com) & [SWE-agent](https://swe-agent.com) helped kickstart the agentic AI for software revolution. In 2025, we ask:
+In 2024, [SWE-bench](https://swebench.com) & [SWE-agent](https://swe-agent.com) helped kickstart the agentic AI for software revolution. In 2025, we ask:
 **What if the agent was 100x smaller, and still worked nearly as well?**
 
 `micro` is for
@@ -21,7 +21,7 @@ Here's some details:
 - **💪 Powerful:** Resolves XX% of GitHub issues in the [SWE-bench verified benchmark](https://www.swebench.com/).
 - **🤗 Friendly:** Comes with **two convenient UIs** that will turn this into your daily dev swiss army knife!
 - **🍀 Environments:** In addition to local envs, you can use **docker**, **podman**, **singularity**, **apptainer**, and more
-- **🎓 Cutting edge:** Built by the Princeton & Stanford team behind [SWE-bench](https://swe-bench.com) and [SWE-agent](https://swe-agent.com).
+- **🎓 Cutting edge:** Built by the Princeton & Stanford team behind [SWE-bench](https://swebench.com) and [SWE-agent](https://swe-agent.com).
 
 ??? note "Why use micro-SWE-agent for research?"
 
