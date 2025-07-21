@@ -2,10 +2,11 @@
 
 <a href="https://mellow-pegasus-562d44.netlify.app/"><img src="docs/assets/micro-swe-agent-banner.svg" alt="micro-swe-agent banner" style="height: 7em"/></a>
 
+<h1>The 100 line AI agent that solves GitHub issues & more</h1>
+
 [![Docs](https://img.shields.io/badge/Docs-green?style=for-the-badge&logo=materialformkdocs&logoColor=white)](https://mellow-pegasus-562d44.netlify.app/)
 [![Slack](https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white)](https://join.slack.com/t/swe-bench/shared_invite/zt-36pj9bu5s-o3_yXPZbaH2wVnxnss1EkQ)
 
-<h1>The 100 line AI agent that solves GitHub issues & more</h1>
 </div>
 
 In 2024, [SWE-bench](https://swebench.com) & [SWE-agent](https://swe-agent.com) helped kickstart the agentic AI for software revolution.
