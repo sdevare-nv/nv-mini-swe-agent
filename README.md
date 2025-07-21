@@ -6,6 +6,7 @@
 
 [![Docs](https://img.shields.io/badge/Docs-green?style=for-the-badge&logo=materialformkdocs&logoColor=white)](https://mellow-pegasus-562d44.netlify.app/)
 [![Slack](https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white)](https://join.slack.com/t/swe-bench/shared_invite/zt-36pj9bu5s-o3_yXPZbaH2wVnxnss1EkQ)
+![PyPI - Version](https://img.shields.io/pypi/v/micro-swe-agent?style=for-the-badge&logo=python&logoColor=white&labelColor=black)
 
 </div>
 
