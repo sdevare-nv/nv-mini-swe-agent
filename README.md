@@ -6,7 +6,7 @@
 
 [![Docs](https://img.shields.io/badge/Docs-green?style=for-the-badge&logo=materialformkdocs&logoColor=white)](https://mellow-pegasus-562d44.netlify.app/)
 [![Slack](https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white)](https://join.slack.com/t/swe-bench/shared_invite/zt-36pj9bu5s-o3_yXPZbaH2wVnxnss1EkQ)
-![PyPI - Version](https://img.shields.io/pypi/v/micro-swe-agent?style=for-the-badge&logo=python&logoColor=white&labelColor=black)
+![PyPI - Version](https://img.shields.io/pypi/v/micro-swe-agent?style=for-the-badge&logo=python&logoColor=white&labelColor=black&color=deeppink)
 
 </div>
 
@@ -27,7 +27,7 @@ Here's some details:
 - **💪 Powerful:** Resolves XX% of GitHub issues in the [SWE-bench verified benchmark](https://www.swebench.com/).
 - **🤗 Friendly:** Comes with **two convenient UIs** that will turn this into your daily dev swiss army knife!
 - **🍀 Environments:** In addition to local envs, you can use **docker**, **podman**, **singularity**, **apptainer**, and more
-- **🧪 Tested:** [![codecov](https://codecov.io/gh/SWE-agent/micro-swe-agent/graph/badge.svg?token=NlwwZAO3o5)](https://codecov.io/gh/SWE-agent/micro-swe-agent)
+- **🧪 Tested:** [![Codecov](https://img.shields.io/codecov/c/github/swe-agent/micro-swe-agent?style=flat-square)](https://codecov.io/gh/SWE-agent/micro-swe-agent)
 - **🎓 Cutting edge:** Built by the Princeton & Stanford team behind [SWE-bench](https://swebench.com) and [SWE-agent](https://swe-agent.com).
 
 <details>
