@@ -151,19 +151,19 @@ agent.run("Write a sudoku game")
 
 ## 🔥 Let's get started!
 
-* Install + run in virtual environment
+Install + run in virtual environment
 
 ```bash
 pip install pipx && pipx ensurepath && pipx run micro-swe-agent [-v]
 ```
 
-* Or install in current environment
+Alternative: Install in current environment
 
 ```bash
 pip install micro-swe-agent && micro [-v]
 ```
 
-* Or install from source
+Alternative: Install from source
 
 ```bash
 git clone https://github.com/SWE-agent/micro-swe-agent.git
