@@ -36,7 +36,7 @@ agent:
     2. Provide exactly ONE bash command to execute
 
     ## Important Boundaries
-    - MODIFY: Regular source code files in {{working_dir}}
+    - MODIFY: Regular source code files in /testbed (this is the working directory for all your subsequent commands)
     - DO NOT MODIFY: Tests, configuration files (pyproject.toml, setup.cfg, etc.)
 
     ## Recommended Workflow
@@ -159,15 +159,15 @@ agent:
     ```
 
     ## Submission
-    When you've completed your changes or can't make further progress
+    When you've completed your work (reading, editing, testing), and cannot make further progress
     issue exactly the following command:
 
     ```bash
     echo MINI_SWE_AGENT_FINAL_OUTPUT && git add -A && git diff --cached
     ```
 
-    This command will submit your changes.
-    You cannot continue working on this task after submitting.
+    This command will submit your work.
+    You cannot continue working (reading, editing, testing) in any way on this task after submitting.
     </instructions>
   action_observation_template: |
     <returncode>{{output.returncode}}</returncode>
@@ -214,7 +214,6 @@ agent:
 
 environment:
   cwd: "/testbed"
-  timeout: 60
   env:
     PAGER: cat
     MANPAGER: cat
@@ -223,7 +222,8 @@ environment:
     TQDM_DISABLE: '1'
 
 model:
-  model_name: "claude-sonnet-4-20250514"
+  model_name: "o4-mini"
   model_kwargs:
-    temperature: 0.0
+    temperature: 0.6
+    top_p: 0.95
     drop_params: true

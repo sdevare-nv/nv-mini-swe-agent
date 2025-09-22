@@ -18,14 +18,20 @@ class DockerEnvironmentConfig:
     Variables are only forwarded if they are set in the host environment.
     In case of conflict with `env`, the `env` variables take precedence.
     """
-    timeout: int = 30
-    """Timeout for executing commands in the container."""
+    step_timeout: int = 600
+    """Timeout for executing a single command via the API."""
+    eval_timeout: int = 600
+    """Timeout for executing the eval via the API."""
     executable: str = "docker"
     """Path to the docker/container executable."""
     run_args: list[str] = field(default_factory=list)
     """Additional arguments to pass to the docker/container executable."""
     container_timeout: str = "2h"
     """Max duration to keep container running. Uses the same format as the sleep command."""
+    cache_dir_template: str | None = None
+    """Ignored for docker"""
+    instance_id: str | None = None
+    """Instance ID to use for the cache directory."""
 
 
 class DockerEnvironment:
@@ -64,7 +70,7 @@ class DockerEnvironment:
         print(f"Started container {container_name} with ID {result.stdout.strip()}")
         self.container_id = result.stdout.strip()
 
-    def execute(self, command: str, cwd: str = "") -> dict[str, Any]:
+    def execute(self, command: str, cwd: str = "", is_eval: bool = False) -> dict[str, Any]:
         """Execute a command in the Docker container and return the result as a dict."""
         cwd = cwd or self.config.cwd
         assert self.container_id, "Container not started"
@@ -80,7 +86,7 @@ class DockerEnvironment:
         result = subprocess.run(
             cmd,
             text=True,
-            timeout=self.config.timeout,
+            timeout=self.config.eval_timeout if is_eval else self.config.step_timeout,
             encoding="utf-8",
             errors="replace",
             stdout=subprocess.PIPE,

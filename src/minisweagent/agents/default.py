@@ -6,6 +6,7 @@ import re
 import subprocess
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
+from typing import Any, Dict, Optional
 
 from jinja2 import Template
 
@@ -56,9 +57,19 @@ class LimitsExceeded(TerminatingException):
 
 
 class DefaultAgent:
-    def __init__(self, model: Model, env: Environment, *, config_class: Callable = AgentConfig, **kwargs):
+    def __init__(
+        self,
+        model: Model,
+        env: Environment,
+        responses_create_params: Optional[Dict[str, Any]],
+        *,
+        config_class: Callable = AgentConfig,
+        **kwargs,
+    ):
         self.config = config_class(**kwargs)
+        self.responses_create_params = responses_create_params
         self.messages: list[dict] = []
+        self.responses: list[dict] = []
         self.model = model
         self.env = env
 
@@ -72,8 +83,17 @@ class DefaultAgent:
     def run(self, task: str) -> tuple[str, str]:
         """Run step() until agent is finished. Return exit status & message"""
         self.messages = []
-        self.add_message("system", self.render_template(self.config.system_template))
-        self.add_message("user", self.render_template(self.config.instance_template, task=task))
+        if (
+            self.responses_create_params
+            and "input" in self.responses_create_params
+            and len(self.responses_create_params["input"]) > 0
+        ):
+            messages = self.responses_create_params["input"]
+            for message in messages:
+                self.add_message(message["role"], message["content"])
+        else:
+            self.add_message("system", self.render_template(self.config.system_template))
+            self.add_message("user", self.render_template(self.config.instance_template, task=task))
         while True:
             try:
                 self.step()
@@ -91,8 +111,17 @@ class DefaultAgent:
         """Query the model and return the response."""
         if 0 < self.config.step_limit <= self.model.n_calls or 0 < self.config.cost_limit <= self.model.cost:
             raise LimitsExceeded()
-        response = self.model.query(self.messages)
+
+        # Support temperature and top_p
+        kwargs = {
+            key: self.responses_create_params[key]
+            for key in ["temperature", "top_p"]
+            if key in self.responses_create_params
+        }
+
+        response = self.model.query(self.messages, **kwargs)
         self.add_message("assistant", response["content"])
+        self.responses.append(response["response_obj"])
         return response
 
     def get_observation(self, response: dict) -> dict:
@@ -104,7 +133,7 @@ class DefaultAgent:
 
     def parse_action(self, response: dict) -> dict:
         """Parse the action from the message. Returns the action."""
-        actions = re.findall(r"```bash\n(.*?)\n```", response["content"], re.DOTALL)
+        actions = re.findall(r"```bash\s*\n(.*?)\n```", response["content"], re.DOTALL)
         if len(actions) == 1:
             return {"action": actions[0].strip(), **response}
         raise FormatError(self.render_template(self.config.format_error_template, actions=actions))
@@ -119,11 +148,25 @@ class DefaultAgent:
             )
         except TimeoutError:
             raise ExecutionTimeoutError(self.render_template(self.config.timeout_template, action=action, output=""))
+
+        if output.get("output", None):
+            lines = output.get("output", "").lstrip().splitlines()
+            # (hack) Skip all the lines due to singulaity exec info/warning
+            exec_output_only = []
+            for line in lines:
+                # print(f"DEBUB action result:", line)
+                if "/etc/singularity/ exists" in line or "Ignoring invalid max threads value" in line:
+                    continue
+                exec_output_only.append(line)
+            output["output"] = "\n".join(exec_output_only)
+
+        lines = output.get("output", "").lstrip().splitlines()
+        print("DEBUG command", action["action"])
         self.has_finished(output)
         return output
 
     def has_finished(self, output: dict[str, str]):
         """Raises Submitted exception with final output if the agent has finished its task."""
-        lines = output.get("output", "").lstrip().splitlines()
-        if lines and lines[0].strip() == "MINI_SWE_AGENT_FINAL_OUTPUT":
-            raise Submitted("\n".join(lines[1:]))
+        lines = output.get("output", "").lstrip().splitlines(keepends=True)
+        if lines and lines[0].strip() in ["MINI_SWE_AGENT_FINAL_OUTPUT", "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"]:
+            raise Submitted("".join(lines[1:]))

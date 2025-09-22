@@ -10,6 +10,7 @@ from rich.console import Console
 from minisweagent.agents.interactive import InteractiveAgent
 from minisweagent.config import builtin_config_dir, get_config_path
 from minisweagent.environments.docker import DockerEnvironment
+from minisweagent.environments.enroot import EnrootEnvironment
 from minisweagent.models import get_model
 from minisweagent.run.extra.config import configure_if_first_time
 from minisweagent.run.utils.save import save_traj
@@ -54,9 +55,11 @@ def main(
 
     task = fetch_github_issue(issue_url)
 
+    env_type = _config.get("environment")["type"]
+    env_type_cls = DockerEnvironment if env_type == "docker" else EnrootEnvironment
     agent = InteractiveAgent(
         get_model(model, _config.get("model", {})),
-        DockerEnvironment(**_config.get("environment", {})),
+        env_type_cls(**_config.get("environment", {})),
         **_agent_config,
     )
 
