@@ -322,7 +322,7 @@ def _main(
     dataset_path = DATASET_MAPPING.get(subset, subset)
     print(f"Loading dataset {dataset_path}, split {split}...")
 
-    instances = instance_dict if [instance_dict] else list(load_dataset(dataset_path, split=split))
+    instances = [instance_dict] if instance_dict else list(load_dataset(dataset_path, split=split))
 
     if instance_id:
         instance_id = instance_id.lower()
