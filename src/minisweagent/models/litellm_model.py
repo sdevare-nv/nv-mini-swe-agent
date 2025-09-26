@@ -36,8 +36,8 @@ class LitellmModel:
             )
 
     @retry(
-        stop=stop_after_attempt(10),
-        wait=wait_exponential(multiplier=1, min=4, max=60),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=20, max=30),
         before_sleep=before_sleep_log(logger, logging.WARNING),
         retry=retry_if_not_exception_type(
             (
