@@ -307,6 +307,7 @@ def _main(
     base_url: str | None = None,
     env: str = "singularity",
     instance_id: str = "",
+    instance_dict: dict = None,
     responses_create_params: str = "",
     cache_dir_template: str | None = None,
     run_golden: bool = False,
@@ -321,7 +322,7 @@ def _main(
     dataset_path = DATASET_MAPPING.get(subset, subset)
     print(f"Loading dataset {dataset_path}, split {split}...")
 
-    instances = list(load_dataset(dataset_path, split=split))
+    instances = instance_dict if [instance_dict] else list(load_dataset(dataset_path, split=split))
 
     if instance_id:
         instance_id = instance_id.lower()
@@ -415,6 +416,7 @@ def main(
     base_url: str | None = typer.Option(None, "--base_url", help="Base URL for model endpoint"),
     env: str = typer.Option("singularity", "--env", help="Environment to use"),
     instance_id: str = typer.Option("", "--instance_id", help="Instance ID to run"),
+    instance_dict: dict = typer.Option(None, "--instance_dict", help="Instance dictionary to run"),
     responses_create_params: str = typer.Option(
         "", "--responses_create_params", help="Input messages to override the initial system and user message"
     ),
@@ -443,6 +445,7 @@ def main(
         base_url=base_url,
         env=env,
         instance_id=instance_id,
+        instance_dict=instance_dict,
         responses_create_params=responses_create_params,
         cache_dir_template=cache_dir_template,
         run_golden=run_golden,
