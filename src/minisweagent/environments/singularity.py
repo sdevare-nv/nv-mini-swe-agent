@@ -84,11 +84,13 @@ class SingularityEnvironment:
             cmd = [
                 self.config.executable,
                 "run",
+                "--writable-tmpfs",
+                "--no-mount",
+                "home,tmp,bind-paths",
                 "--bind",
                 f"{self.server_script_path}:{server_path_in_container}:ro",
                 "--pwd",
                 self.pwd,
-                "--writable-tmpfs",
                 *self.config.start_args,
             ]
             for key, value in self.config.env.items():
@@ -99,7 +101,7 @@ class SingularityEnvironment:
             pip_timeout = self.config.step_timeout + 60
             install_and_run_cmd = (
                 f"mkdir -p /tmp/singularity_server && cd /tmp/singularity_server && "
-                f"timeout {pip_timeout} pip install --no-cache-dir 'uvicorn[standard]==0.35.0' fastapi==0.116.1 && "
+                f"timeout {pip_timeout} pip install --no-cache-dir uvicorn[standard]==0.35.0 fastapi==0.116.1 && "
                 f"python3 {server_path_in_container} --port {self.port}"
             )
             cmd.extend(["/bin/bash", "-c", install_and_run_cmd])
