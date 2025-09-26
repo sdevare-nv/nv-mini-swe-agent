@@ -4,6 +4,13 @@ preds.json
 *.traj.json
 .env
 traj.json
+.cache_*
+*.sif
+*.out
+*.err
+gym_images/*
+logs/*
+outputs*
 
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
@@ -179,6 +186,8 @@ poetry.toml
 
 # LSP config files
 pyrightconfig.json
+
+temp*
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 

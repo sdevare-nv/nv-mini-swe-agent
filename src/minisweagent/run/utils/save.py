@@ -12,7 +12,7 @@ def save_traj(
     result: str | None = None,
     extra_info: dict | None = None,
     **kwargs,
-):
+) -> dict:
     data = {
         "info": {
             "exit_status": exit_status,
@@ -23,14 +23,17 @@ def save_traj(
             },
         },
         "messages": [],
+        "responses": [],
         "trajectory_format": "mini-swe-agent-1",
     } | kwargs
     if agent is not None:
         data["info"]["model_stats"]["instance_cost"] = agent.model.cost
         data["info"]["model_stats"]["api_calls"] = agent.model.n_calls
         data["messages"] = agent.messages
+        data["responses"] = agent.responses
     if extra_info:
         data["info"].update(extra_info)
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2))
+    return data

@@ -9,6 +9,7 @@ from datasets import load_dataset
 from minisweagent.agents.interactive import InteractiveAgent
 from minisweagent.config import builtin_config_dir, get_config_path
 from minisweagent.environments.docker import DockerEnvironment
+from minisweagent.environments.enroot import EnrootEnvironment
 from minisweagent.models import get_model
 from minisweagent.run.extra.swebench import DATASET_MAPPING, get_swebench_docker_image_name
 
@@ -40,7 +41,7 @@ def main(
     instance: dict = instances[instance_spec]  # type: ignore
 
     _config = yaml.safe_load(get_config_path(config_path).read_text())
-    env = DockerEnvironment(**(_config.get("environment", {}) | {"image": get_swebench_docker_image_name(instance)}))
+    env = EnrootEnvironment(**(_config.get("environment", {}) | {"image": get_swebench_docker_image_name(instance)}))
     agent = InteractiveAgent(
         get_model(model_name, _config.get("model", {})),
         env,

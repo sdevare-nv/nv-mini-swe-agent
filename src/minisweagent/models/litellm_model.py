@@ -31,11 +31,13 @@ class LitellmModel:
         self.cost = 0.0
         self.n_calls = 0
         if self.config.litellm_model_registry is not None:
-            litellm.utils.register_model(json.loads(Path(self.config.litellm_model_registry).read_text()))
+            litellm.utils.register_model(
+                json.loads(Path(self.config.litellm_model_registry).read_text())
+            )
 
     @retry(
-        stop=stop_after_attempt(10),
-        wait=wait_exponential(multiplier=1, min=4, max=60),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=20, max=30),
         before_sleep=before_sleep_log(logger, logging.WARNING),
         retry=retry_if_not_exception_type(
             (
@@ -52,7 +54,9 @@ class LitellmModel:
     def _query(self, messages: list[dict[str, str]], **kwargs):
         try:
             return litellm.completion(
-                model=self.config.model_name, messages=messages, **(self.config.model_kwargs | kwargs)
+                model=self.config.model_name,
+                messages=messages,
+                **(self.config.model_kwargs | kwargs),
             )
         except litellm.exceptions.AuthenticationError as e:
             e.message += " You can permanently set your API key with `mini-extra config set KEY VALUE`."
@@ -60,10 +64,24 @@ class LitellmModel:
 
     def query(self, messages: list[dict[str, str]], **kwargs) -> dict:
         response = self._query(messages, **kwargs)
-        cost = litellm.cost_calculator.completion_cost(response)
-        self.n_calls += 1
-        self.cost += cost
-        GLOBAL_MODEL_STATS.add(cost)
+        if hasattr(response.choices[0].message, "provider_specific_fields"):
+            provider_specific_fields = response.choices[
+                0
+            ].message.provider_specific_fields
+        else:
+            provider_specific_fields = {}
+        try:
+            cost = litellm.cost_calculator.completion_cost(response)
+            self.n_calls += 1
+            self.cost += cost
+            GLOBAL_MODEL_STATS.add(cost)
+        except Exception:
+            self.n_calls += 1
+            self.cost += 0
+            GLOBAL_MODEL_STATS.add(0)
+
         return {
             "content": response.choices[0].message.content or "",  # type: ignore
+            "response_obj": response.model_dump()
+            | {"provider_specific_fields": provider_specific_fields},
         }
