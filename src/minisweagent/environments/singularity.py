@@ -99,11 +99,13 @@ class SingularityEnvironment:
             cmd.append(self.sif_path)
 
             pip_timeout = self.config.step_timeout + 60
-            install_and_run_cmd = (
-                f"mkdir -p /tmp/singularity_server && cd /tmp/singularity_server && "
-                f"timeout {pip_timeout} pip install --no-cache-dir uvicorn[standard]==0.35.0 fastapi==0.116.1 && "
-                f"python3 {server_path_in_container} --port {self.port}"
-            )
+            install_and_run_cmd = f"""
+mkdir -p /tmp/singularity_server && cd /tmp/singularity_server &&
+curl -LsSf https://astral.sh/uv/install.sh | sh && source $HOME/.local/bin/env &&
+uv venv /tmp/singularity_server/.venv --python 3.12 &&
+timeout {pip_timeout} uv pip install --no-cache-dir --python /tmp/singularity_server/.venv/bin/python "fastapi[standard]==0.117.1" &&
+/tmp/singularity_server/.venv/bin/python {server_path_in_container} --port {self.port}"""
+
             cmd.extend(["/bin/bash", "-c", install_and_run_cmd])
 
             print(f"Starting container with command: {shlex.join(cmd)}")
