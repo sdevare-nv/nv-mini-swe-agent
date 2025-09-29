@@ -104,7 +104,7 @@ class SingularityEnvironment:
             uv_install_dir = "/tmp/singularity_server/uv"
             venv_path = "/tmp/singularity_server/.venv"
 
-            install_and_run_cmd = f"""mkdir -p {uv_install_dir} && cd /tmp/singularity_server &&
+            install_and_run_cmd = f"""echo '127.0.0.1 localhost' > /etc/hosts & mkdir -p {uv_install_dir} && cd /tmp/singularity_server &&
 curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="{uv_install_dir}" sh && source {uv_install_dir}/env &&
 uv venv {venv_path} --python 3.12 &&
 timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/python "fastapi[standard]==0.117.1" &&

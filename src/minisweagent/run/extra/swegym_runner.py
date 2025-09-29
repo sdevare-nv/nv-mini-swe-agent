@@ -307,7 +307,7 @@ def _main(
     base_url: str | None = None,
     env: str = "singularity",
     instance_id: str = "",
-    instance_dict: dict = None,
+    instance_dict: str | dict = None,
     responses_create_params: str = "",
     cache_dir_template: str | None = None,
     run_golden: bool = False,
@@ -416,7 +416,7 @@ def main(
     base_url: str | None = typer.Option(None, "--base_url", help="Base URL for model endpoint"),
     env: str = typer.Option("singularity", "--env", help="Environment to use"),
     instance_id: str = typer.Option("", "--instance_id", help="Instance ID to run"),
-    instance_dict: dict = typer.Option(None, "--instance_dict", help="Instance dictionary to run"),
+    instance_dict: str = typer.Option(None, "--instance_dict", help="Instance dictionary to run"),
     responses_create_params: str = typer.Option(
         "", "--responses_create_params", help="Input messages to override the initial system and user message"
     ),

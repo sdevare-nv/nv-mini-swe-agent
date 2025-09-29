@@ -60,9 +60,9 @@ class LitellmModel:
                 response = responses[responses_idx]
                 if response.get("provider_specific_fields", {}):
                     provider_specific_fields = response["provider_specific_fields"]
-                    assistant_message["prompt_token_ids"] = provider_specific_fields["prompt_token_ids"]
-                    assistant_message["generation_token_ids"] = provider_specific_fields["generation_token_ids"]
-                    assistant_message["generation_log_probs"] = provider_specific_fields["generation_log_probs"]
+                    for key in ["prompt_token_ids", "generation_token_ids", "generation_log_probs"]:
+                        if key in provider_specific_fields:
+                            assistant_message[key] = provider_specific_fields[key]
                 responses_idx += 1
                 processed_messages.append(assistant_message)
 
