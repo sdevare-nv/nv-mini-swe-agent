@@ -31,9 +31,7 @@ class LitellmModel:
         self.cost = 0.0
         self.n_calls = 0
         if self.config.litellm_model_registry is not None:
-            litellm.utils.register_model(
-                json.loads(Path(self.config.litellm_model_registry).read_text())
-            )
+            litellm.utils.register_model(json.loads(Path(self.config.litellm_model_registry).read_text()))
 
     @retry(
         stop=stop_after_attempt(5),
@@ -51,23 +49,41 @@ class LitellmModel:
             )
         ),
     )
-    def _query(self, messages: list[dict[str, str]], **kwargs):
+    def _add_tokens_ids_to_messages(self, messages: list[dict[str, str]], responses: list[dict[str, str]]):
+        processed_messages = []
+        responses_idx = 0
+        for message in messages:
+            if message["role"] in ["system", "user"]:
+                processed_messages.append(message)
+            elif message["role"] == "assistant":
+                assistant_message = message.copy()
+                response = responses[responses_idx]
+                if response.get("provider_specific_fields", {}):
+                    provider_specific_fields = response["provider_specific_fields"]
+                    assistant_message["prompt_token_ids"] = provider_specific_fields["prompt_token_ids"]
+                    assistant_message["generation_token_ids"] = provider_specific_fields["generation_token_ids"]
+                    assistant_message["generation_log_probs"] = provider_specific_fields["generation_log_probs"]
+                responses_idx += 1
+                processed_messages.append(assistant_message)
+
+        return processed_messages
+
+    def _query(self, messages: list[dict[str, str]], responses: list[dict[str, str]], **kwargs):
         try:
             return litellm.completion(
                 model=self.config.model_name,
-                messages=messages,
+                messages=self._add_tokens_ids_to_messages(messages, responses),
+                timeout=None,
                 **(self.config.model_kwargs | kwargs),
             )
         except litellm.exceptions.AuthenticationError as e:
             e.message += " You can permanently set your API key with `mini-extra config set KEY VALUE`."
             raise e
 
-    def query(self, messages: list[dict[str, str]], **kwargs) -> dict:
-        response = self._query(messages, **kwargs)
+    def query(self, messages: list[dict[str, str]], responses: list[dict[str, str]], **kwargs) -> dict:
+        response = self._query(messages, responses, **kwargs)
         if hasattr(response.choices[0].message, "provider_specific_fields"):
-            provider_specific_fields = response.choices[
-                0
-            ].message.provider_specific_fields
+            provider_specific_fields = response.choices[0].message.provider_specific_fields
         else:
             provider_specific_fields = {}
         try:
@@ -82,6 +98,5 @@ class LitellmModel:
 
         return {
             "content": response.choices[0].message.content or "",  # type: ignore
-            "response_obj": response.model_dump()
-            | {"provider_specific_fields": provider_specific_fields},
+            "response_obj": response.model_dump() | {"provider_specific_fields": provider_specific_fields},
         }

@@ -119,7 +119,7 @@ class DefaultAgent:
             if key in self.responses_create_params
         }
 
-        response = self.model.query(self.messages, **kwargs)
+        response = self.model.query(self.messages, self.responses, **kwargs)
         self.add_message("assistant", response["content"])
         self.responses.append(response["response_obj"])
         return response
