@@ -33,22 +33,6 @@ class LitellmModel:
         if self.config.litellm_model_registry is not None:
             litellm.utils.register_model(json.loads(Path(self.config.litellm_model_registry).read_text()))
 
-    @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=1, min=20, max=30),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
-        retry=retry_if_not_exception_type(
-            (
-                litellm.exceptions.UnsupportedParamsError,
-                litellm.exceptions.NotFoundError,
-                litellm.exceptions.PermissionDeniedError,
-                litellm.exceptions.ContextWindowExceededError,
-                litellm.exceptions.APIError,
-                litellm.exceptions.AuthenticationError,
-                KeyboardInterrupt,
-            )
-        ),
-    )
     def _add_tokens_ids_to_messages(self, messages: list[dict[str, str]], responses: list[dict[str, str]]):
         processed_messages = []
         responses_idx = 0
@@ -68,6 +52,22 @@ class LitellmModel:
 
         return processed_messages
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=20, max=30),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        retry=retry_if_not_exception_type(
+            (
+                litellm.exceptions.UnsupportedParamsError,
+                litellm.exceptions.NotFoundError,
+                litellm.exceptions.PermissionDeniedError,
+                litellm.exceptions.ContextWindowExceededError,
+                litellm.exceptions.APIError,
+                litellm.exceptions.AuthenticationError,
+                KeyboardInterrupt,
+            )
+        ),
+    )
     def _query(self, messages: list[dict[str, str]], responses: list[dict[str, str]], **kwargs):
         try:
             return litellm.completion(
