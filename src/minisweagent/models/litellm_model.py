@@ -73,7 +73,7 @@ class LitellmModel:
             return litellm.completion(
                 model=self.config.model_name,
                 messages=self._add_tokens_ids_to_messages(messages, responses),
-                timeout=None,
+                timeout=7200,  # 2 hours
                 **(self.config.model_kwargs | kwargs),
             )
         except litellm.exceptions.AuthenticationError as e:

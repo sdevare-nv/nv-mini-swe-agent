@@ -86,7 +86,7 @@ class SingularityEnvironment:
                 "run",
                 "--writable-tmpfs",
                 "--no-mount",
-                "home,tmp,bind-paths",
+                "home,tmp,bind-paths,lustre",
                 "--bind",
                 f"{self.server_script_path}:{server_path_in_container}:ro",
                 "--pwd",
