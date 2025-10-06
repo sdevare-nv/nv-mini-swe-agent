@@ -167,6 +167,7 @@ def process_instance(
     run_golden: bool,
     step_timeout: int,
     eval_timeout: int,
+    step_limit: int,
 ) -> None:
     """Process a single SWEGym instance."""
     instance_id = instance["instance_id"]
@@ -211,13 +212,15 @@ def process_instance(
             env.cleanup()
             return None, None
 
+        agent_config = config.get("agent", {})
+        agent_config["step_limit"] = step_limit
         agent = ProgressTrackingAgent(
             model,
             env,
             responses_create_params,
             progress_manager=progress_manager,
             instance_id=instance_id,
-            **config.get("agent", {}),
+            **agent_config,
         )
 
         if not run_golden:
@@ -313,6 +316,7 @@ def _main(
     run_golden: bool = False,
     step_timeout: int = 600,
     eval_timeout: int = 600,
+    step_limit: int = 250,
 ):
     if responses_create_params:
         responses_create_params = json.loads(responses_create_params)
@@ -382,6 +386,7 @@ def _main(
                     run_golden,
                     step_timeout,
                     eval_timeout,
+                    step_limit,
                 ): instance["instance_id"]
                 for instance in instances
             }
@@ -428,6 +433,7 @@ def main(
     run_golden: bool = typer.Option(False, "--run_golden", help="Run golden patch"),
     step_timeout: int = typer.Option(600, "--step_timeout", help="Timeout for each turn of the agent"),
     eval_timeout: int = typer.Option(600, "--eval_timeout", help="Timeout for the eval"),
+    step_limit: int = typer.Option(250, "--step_limit", help="Limit the number of steps the agent takes"),
 ) -> None:
     _main(
         subset=subset,
@@ -451,6 +457,7 @@ def main(
         run_golden=run_golden,
         step_timeout=step_timeout,
         eval_timeout=eval_timeout,
+        step_limit=step_limit,
     )
 
 
