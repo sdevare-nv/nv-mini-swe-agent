@@ -1,14 +1,17 @@
-import uvicorn
-import subprocess
-import os
 import argparse
 import asyncio
+import os
 import signal
-import sys
+import socket
+import subprocess
+import textwrap
+import time
 from contextlib import asynccontextmanager
+from random import uniform
+
+import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
-import textwrap
 
 CONDA_ENV = None
 shutdown_event = asyncio.Event()
@@ -22,6 +25,19 @@ class CommandRequest(BaseModel):
 class CommandResult(BaseModel):
     output: str
     returncode: int
+
+
+def find_free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("", 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
+
+
+def is_port_in_use(host: str, port: int) -> bool:
+    print(f"Checking if port {port} is in use...")
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex((host, port)) == 0
 
 
 @asynccontextmanager
@@ -100,6 +116,33 @@ async def shutdown():
     return {"message": "Shutdown initiated"}
 
 
+def start_server(app: FastAPI, host: str, initial_port: int):
+    """
+    Starts the Uvicorn server on the given port. If the port is in use,
+    it finds a new free port and attempts to start the server there.
+    """
+    port = initial_port
+    while True:
+        # Check if port is available before attempting to start server
+        if is_port_in_use(host, port):
+            print(f"⚠️ Port {port} is already in use.")
+            port = find_free_port()
+            time.sleep(uniform(1, 8))
+            continue
+
+        print(f"Attempting to start server on http://{host}:{port}")
+        uvicorn.run(
+            app,
+            host=host,
+            port=port,
+            timeout_graceful_shutdown=5,
+            timeout_keep_alive=2,
+            access_log=False,
+            server_header=False,
+        )
+        break
+
+
 if __name__ == "__main__":
     # Register signal handlers
     signal.signal(signal.SIGTERM, signal_handler)
@@ -116,12 +159,4 @@ if __name__ == "__main__":
     print(f"Commands will run inside the '{CONDA_ENV}' Conda environment.")
 
     # Run with explicit shutdown settings
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=args.port,
-        timeout_graceful_shutdown=5,
-        timeout_keep_alive=2,
-        access_log=False,
-        server_header=False,
-    )
+    start_server(app, host="0.0.0.0", initial_port=args.port)
