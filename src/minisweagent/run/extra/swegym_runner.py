@@ -12,12 +12,11 @@ import time
 import traceback
 import uuid
 from pathlib import Path
-from typing import cast, Dict, Any, List
+from typing import cast, Any
 
 import typer
 import yaml
 from datasets import load_dataset
-from rich.live import Live
 from swegym.harness.constants import SWEbenchInstance
 from swegym.harness.docker_build import setup_logger
 from swegym.harness.grading import get_eval_report
@@ -160,7 +159,7 @@ def process_instance(
     api_key: str,
     base_url: str,
     env_cls: SingularityEnvironment | DockerEnvironment,
-    responses_create_params: Dict[str, Any],
+    responses_create_params: dict[str, Any],
     cache_dir_template: str | None,
     run_id: str,
     subset: str,
@@ -350,9 +349,13 @@ def _main(
     results = {}
 
     def process_futures(futures: dict[concurrent.futures.Future, str]):
+        completed = 0
+        total = len(futures)
         for future in concurrent.futures.as_completed(futures):
             try:
                 data, eval_report = future.result()
+                completed += 1
+                print(f"Progress: {completed}/{total} instances completed")
                 if data is None:
                     continue
                 results[data["instance_id"]] = data
@@ -365,39 +368,38 @@ def _main(
                 traceback.print_exc()
                 progress_manager.on_uncaught_exception(instance_id, e)
 
-    with Live(progress_manager.render_group, refresh_per_second=4):
-        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = {
-                executor.submit(
-                    process_instance,
-                    instance,
-                    output_path,
-                    model,
-                    config,
-                    progress_manager,
-                    convert_to_sif,
-                    api_key,
-                    base_url,
-                    env_cls,
-                    responses_create_params,
-                    cache_dir_template,
-                    run_id,
-                    subset,
-                    run_golden,
-                    step_timeout,
-                    eval_timeout,
-                    step_limit,
-                ): instance["instance_id"]
-                for instance in instances
-            }
-            try:
-                process_futures(futures)
-            except KeyboardInterrupt:
-                print("Cancelling all pending jobs. Press ^C again to exit immediately.")
-                for future in futures:
-                    if not future.running() and not future.done():
-                        future.cancel()
-                process_futures(futures)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {
+            executor.submit(
+                process_instance,
+                instance,
+                output_path,
+                model,
+                config,
+                progress_manager,
+                convert_to_sif,
+                api_key,
+                base_url,
+                env_cls,
+                responses_create_params,
+                cache_dir_template,
+                run_id,
+                subset,
+                run_golden,
+                step_timeout,
+                eval_timeout,
+                step_limit,
+            ): instance["instance_id"]
+            for instance in instances
+        }
+        try:
+            process_futures(futures)
+        except KeyboardInterrupt:
+            print("Cancelling all pending jobs. Press ^C again to exit immediately.")
+            for future in futures:
+                if not future.running() and not future.done():
+                    future.cancel()
+            process_futures(futures)
 
     return results
 
