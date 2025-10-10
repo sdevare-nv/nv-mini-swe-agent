@@ -7,12 +7,13 @@ import concurrent.futures
 import json
 import random
 import re
+import subprocess
 import threading
 import time
 import traceback
 import uuid
 from pathlib import Path
-from typing import cast, Any
+from typing import Any, cast
 
 import typer
 import yaml
@@ -45,6 +46,41 @@ DATASET_MAPPING = {
 
 
 _OUTPUT_FILE_LOCK = threading.Lock()
+
+
+class TimeoutError(Exception):
+    """Custom timeout exception."""
+
+    pass
+
+
+def run_with_timeout(func, timeout_seconds, *args, **kwargs):
+    """
+    Run a function with a timeout. If the function doesn't complete within
+    timeout_seconds, raise TimeoutError and attempt cleanup.
+    """
+    result = [None]
+    exception = [None]
+
+    def target():
+        try:
+            result[0] = func(*args, **kwargs)
+        except Exception as e:
+            exception[0] = e
+
+    thread = threading.Thread(target=target)
+    thread.daemon = True
+    thread.start()
+    thread.join(timeout_seconds)
+
+    if thread.is_alive():
+        # Thread is still running, which means timeout occurred
+        raise TimeoutError(f"Function timed out after {timeout_seconds} seconds")
+
+    if exception[0]:
+        raise exception[0]
+
+    return result[0]
 
 
 class ProgressTrackingAgent(DefaultAgent):
@@ -227,17 +263,61 @@ def process_instance(
         else:
             exit_status, result = "Gold Patch Applied", instance.get("patch", "")
 
-        # print(f"DEBUG: result: {result}", instance_id)
-        # print(f"DEBUG: Running eval for {instance_id}")
-        eval_report = run_eval(
-            instance=instance,
-            env=env,
-            model_patch=result,
-            instance_dir=instance_dir,
-            run_id=run_id,
-            is_golden=run_golden,
-        )
-        print(f"DEBUG: Eval completed for {instance_id}")
+        print(f"DEBUG: Running eval for {instance_id}")
+        try:
+            eval_report = run_with_timeout(
+                run_eval,
+                eval_timeout,
+                instance=instance,
+                env=env,
+                model_patch=result,
+                instance_dir=instance_dir,
+                run_id=run_id,
+                is_golden=run_golden,
+            )
+            print(f"DEBUG: Eval completed for {instance_id}")
+        except TimeoutError as e:
+            print(f"DEBUG: Eval timed out for {instance_id}: {e}")
+            # Force cleanup of the environment to kill any hanging processes
+            try:
+                env.cleanup()
+            except Exception as cleanup_error:
+                print(f"Warning: Error during environment cleanup: {cleanup_error}")
+
+            # Additional aggressive cleanup for singularity environments
+            if hasattr(env, "server_process") and env.server_process:
+                try:
+                    # Kill any remaining processes related to this port/server
+
+                    if hasattr(env, "sif_path") and env.sif_path:
+                        sif_filename = Path(env.sif_path).name
+                        subprocess.run(["pkill", "-f", f"singularity.*{sif_filename}"], timeout=10, capture_output=True)
+                        print(f"Attempted to kill singularity container using {sif_filename}")
+
+                    patterns = [
+                        f"--port {env.port}",  # FastAPI server with this port
+                        f"localhost:{env.port}",  # Any process connecting to this port
+                    ]
+
+                    for pattern in patterns:
+                        subprocess.run(["pkill", "-f", pattern], timeout=10, capture_output=True)
+
+                    print(f"Attempted to kill any remaining processes for port {env.port}")
+                except Exception as kill_error:
+                    print(f"Warning: Could not kill remaining processes: {kill_error}")
+
+            # Create a mock eval report indicating timeout
+            eval_report = {
+                "instance_id": instance_id,
+                "model_patch": result,
+                "eval_report": {
+                    instance_id: {
+                        "resolved": False,
+                        "error": f"Evaluation timed out after {eval_timeout} seconds",
+                        "timeout": True,
+                    }
+                },
+            }
         data = save_traj(
             agent,
             instance_dir / f"{instance_id}_{run_id}.traj.json",

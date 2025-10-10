@@ -14,7 +14,6 @@ from typing import Any
 import requests
 
 
-# --- Helper function to find a free port ---
 def find_free_port():
     """Finds and returns an available TCP port on the host."""
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
@@ -304,56 +303,48 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
 
         print(f"\nCleaning up Singularity environment (port {self.port})...")
 
+        # Try graceful shutdown first
         if self.port and self.server_process and self.server_process.poll() is None:
             try:
                 print(f"Requesting graceful shutdown for port {self.port}...")
-                response = requests.post(f"http://localhost:{self.port}/shutdown", timeout=5)
-                print(f"Shutdown request response: {response.status_code}")
+                requests.post(f"http://localhost:{self.port}/shutdown", timeout=3)
                 time.sleep(5)
-            except Exception as e:
-                print(f"Failed to request graceful shutdown: {e}")
-                pass
+            except Exception:
+                pass  # Graceful shutdown failed, proceed to force termination
 
-        # Force process termination
+        # Force process termination if still running
         if self.server_process and self.server_process.poll() is None:
             print(f"Terminating server process {self.server_process.pid}...")
-
-            def kill_group(sig, fallback):
+            try:
+                # Try to kill the process group first (this should kill the singularity container too)
+                pgid = os.getpgid(self.server_process.pid)
+                os.killpg(pgid, signal.SIGTERM)
+                self.server_process.wait(timeout=10)
+                print("Server process terminated")
+            except (ProcessLookupError, PermissionError, OSError, subprocess.TimeoutExpired):
+                # Force kill if graceful termination fails
                 try:
                     pgid = os.getpgid(self.server_process.pid)
-                    os.killpg(pgid, sig)
-                    print(f"Sent signal {sig} to process group {pgid}")
-                except (ProcessLookupError, PermissionError, OSError) as e:
-                    print(f"Could not signal process group: {e}")
-                    try:
-                        fallback()
-                    except (ProcessLookupError, PermissionError, OSError) as fallback_error:
-                        print(f"Fallback also failed: {fallback_error}")
-
-            kill_group(signal.SIGTERM, self.server_process.terminate)
-            try:
-                self.server_process.wait(timeout=15)
-                print("Server process terminated gracefully")
-            except subprocess.TimeoutExpired:
-                print("Server did not terminate gracefully, killing it...")
-                kill_group(signal.SIGKILL, self.server_process.kill)
-                try:
-                    self.server_process.wait(timeout=5)
-                    print("Server process killed")
-                except subprocess.TimeoutExpired:
-                    print(f"WARNING: Server process {self.server_process.pid} may still be running")
-                    # As a last resort, try to kill any remaining processes
-                    try:
-                        subprocess.run(["pkill", "-f", f"port {self.port}"], timeout=5, capture_output=True)
-                        print(f"Attempted to kill any remaining processes on port {self.port}")
-                    except Exception as cleanup_error:
-                        print(f"Final cleanup attempt failed: {cleanup_error}")
-                        pass
+                    os.killpg(pgid, signal.SIGKILL)
+                    self.server_process.wait(timeout=3)
+                    print("Server process force killed")
+                except Exception:
+                    print(f"WARNING: Could not terminate server process {self.server_process.pid}")
+                    # Last resort: kill by SIF file pattern
+                    if self.sif_path:
+                        try:
+                            sif_filename = Path(self.sif_path).name
+                            subprocess.run(
+                                ["pkill", "-9", "-f", f"singularity.*{sif_filename}"], timeout=5, capture_output=True
+                            )
+                            print(f"Attempted emergency kill of singularity container {sif_filename}")
+                        except Exception as e:
+                            print(f"Emergency kill failed: {e}")
 
             self.server_process = None
 
+        # Clean up temporary files
         if self.server_script_path and os.path.exists(self.server_script_path):
-            print(f"Removing temp server script: {self.server_script_path}")
             os.remove(self.server_script_path)
             self.server_script_path = None
 
