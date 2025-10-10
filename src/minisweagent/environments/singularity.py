@@ -23,6 +23,8 @@ from tenacity import (
 
 logger = logging.getLogger("singularity_environment")
 
+END_TRAJECTORY_COMMAND = "echo MINI_SWE_AGENT_FINAL_OUTPUT && git add -A && git diff --cached"
+
 
 def find_free_port():
     """Finds and returns an available TCP port on the host."""
@@ -77,6 +79,7 @@ class SingularityEnvironment:
         self.port: int | None = None
         self.config = config_class(**kwargs)
         self._is_cleaned_up = False
+        self._fallback_mode = False
         self.pwd = "testbed"
 
         assert self.config.cache_dir_template is not None, (
@@ -89,10 +92,14 @@ class SingularityEnvironment:
             self.port = find_free_port()
             self._install_dependencies()
             self._health_check()
-        except (Exception, KeyboardInterrupt) as e:
-            print(f"An error occurred during initialization: {e}")
+        except KeyboardInterrupt:
+            print("Initialization interrupted by user")
             self.cleanup()
             raise
+        except Exception as e:
+            print(f"An error occurred during initialization: {e}")
+            print("Enabling fallback mode due to initialization failure.")
+            self._fallback_mode = True
 
     @retry(
         stop=stop_after_attempt(5),
@@ -185,7 +192,10 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
             logs = self.server_process.stdout.read()
             print(f"--- Container Server Logs ---\n{logs}")
 
-        raise RuntimeError("Failed to start the Singularity server.")
+        # Set fallback mode flag
+        self._fallback_mode = True
+        print("Singularity server failed to start. Enabling fallback mode.")
+        return
 
     def _find_container(self) -> str:
         """Find the container file using multiple strategies.
@@ -295,6 +305,17 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
         Returns:
             A dictionary with 'output' (str) and 'returncode' (int).
         """
+        if self._fallback_mode:
+            if command.strip() == END_TRAJECTORY_COMMAND:
+                return {"output": "MINI_SWE_AGENT_FINAL_OUTPUT", "returncode": 0}
+            else:
+                prompt_message = (
+                    "The environment container failed to start. "
+                    "Please run the following command to end the trajectory: "
+                    f"{END_TRAJECTORY_COMMAND}"
+                )
+                return {"output": prompt_message, "returncode": 1}
+
         if self._is_cleaned_up or not self.server_process or not self.port:
             raise RuntimeError("Cannot execute command: The environment has been cleaned up or initialization failed.")
 
