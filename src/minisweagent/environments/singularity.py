@@ -1,4 +1,5 @@
 import glob
+import logging
 import os
 import shlex
 import signal
@@ -12,6 +13,15 @@ from pathlib import Path
 from typing import Any
 
 import requests
+from tenacity import (
+    before_sleep_log,
+    retry,
+    retry_if_not_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+logger = logging.getLogger("singularity_environment")
 
 
 def find_free_port():
@@ -77,59 +87,74 @@ class SingularityEnvironment:
             self._setup_sif()
             self._create_server_script()
             self.port = find_free_port()
+            self._install_dependencies()
+            self._health_check()
+        except (Exception, KeyboardInterrupt) as e:
+            print(f"An error occurred during initialization: {e}")
+            self.cleanup()
+            raise
 
-            server_path_in_container = f"/tmp/{os.path.basename(self.server_script_path)}"
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=2, min=20, max=60),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        retry=(
+            retry_if_not_exception_type(
+                (
+                    FileNotFoundError,
+                    PermissionError,
+                    KeyboardInterrupt,
+                )
+            )
+        ),
+    )
+    def _install_dependencies(self):
+        server_path_in_container = f"/tmp/{os.path.basename(self.server_script_path)}"
 
-            cmd = [
-                self.config.executable,
-                "run",
-                "--writable-tmpfs",
-                "--containall",
-                "--no-mount",
-                "home,tmp,bind-paths",
-                "--bind",
-                f"{self.server_script_path}:{server_path_in_container}:ro",
-                "--pwd",
-                self.pwd,
-                *self.config.start_args,
-            ]
-            for key, value in self.config.env.items():
-                cmd.extend(["--env", f"{key}={value}"])
+        cmd = [
+            self.config.executable,
+            "run",
+            "--writable-tmpfs",
+            "--containall",
+            "--no-mount",
+            "home,tmp,bind-paths",
+            "--bind",
+            f"{self.server_script_path}:{server_path_in_container}:ro",
+            "--pwd",
+            self.pwd,
+            *self.config.start_args,
+        ]
+        for key, value in self.config.env.items():
+            cmd.extend(["--env", f"{key}={value}"])
 
-            cmd.append(self.sif_path)
+        cmd.append(self.sif_path)
 
-            pip_timeout = self.config.step_timeout + 60
+        pip_timeout = self.config.step_timeout + 60
 
-            # The installation directory
-            uv_install_dir = "/tmp/singularity_server/uv"
-            venv_path = "/tmp/singularity_server/.venv"
+        # The installation directory
+        uv_install_dir = "/tmp/singularity_server/uv"
+        venv_path = "/tmp/singularity_server/.venv"
 
-            install_and_run_cmd = f"""echo '127.0.0.1 localhost' > /etc/hosts & mkdir -p {uv_install_dir} && cd /tmp/singularity_server &&
+        install_and_run_cmd = f"""echo '127.0.0.1 localhost' > /etc/hosts & mkdir -p {uv_install_dir} && cd /tmp/singularity_server &&
 curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="{uv_install_dir}" sh && source {uv_install_dir}/env &&
 uv venv {venv_path} --python 3.12 &&
 timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/python "fastapi[standard]==0.117.1" &&
 {venv_path}/bin/python {server_path_in_container} --port {self.port}"""
 
-            cmd.extend(["/bin/bash", "-c", install_and_run_cmd])
+        cmd.extend(["/bin/bash", "-c", install_and_run_cmd])
 
-            print(f"Starting container with command: {shlex.join(cmd)}")
-            self.server_process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                start_new_session=True,
-            )
+        print(f"Starting container with command: {shlex.join(cmd)}")
+        self.server_process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            start_new_session=True,
+        )
 
-            self._health_check()
-            print(f"Container server started successfully on port {self.port}.")
-
-        except (Exception, KeyboardInterrupt) as e:
-            print(f"An error occurred during initialization: {e}")
-            self.cleanup()
-            raise
+        print(f"Container server started successfully on port {self.port}.")
 
     def _health_check(self):
         """Waits for the container's API server to become responsive."""
@@ -145,7 +170,7 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
                 if response.status_code == 200:
                     response = requests.post(
                         f"http://localhost:{self.port}/run_command",
-                        json={"command": "git gc"},
+                        json={"command": "echo 'hello'"},
                         timeout=self.config.step_timeout,
                     )
                     response.raise_for_status()
@@ -184,19 +209,16 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
         # Try lowercase version
         container_name_lower = container_formatter.format(instance_id=instance_id.replace("__", "_1776_").lower())
         if os.path.exists(container_name_lower):
-            print(f"Using _1776_ replacement (lowercase): {container_name_lower}")
             return container_name_lower
 
         # Strategy 2: Try _s_ replacement (original case and lowercase)
         container_name_s = container_formatter.format(instance_id=instance_id.replace("__", "_s_"))
         if os.path.exists(container_name_s):
-            print(f"Using _s_ replacement: {container_name_s}")
             return container_name_s
 
         # Try lowercase version
         container_name_s_lower = container_formatter.format(instance_id=instance_id.replace("__", "_s_").lower())
         if os.path.exists(container_name_s_lower):
-            print(f"Using _s_ replacement (lowercase): {container_name_s_lower}")
             return container_name_s_lower
 
         # Strategy 3: Fuzzy search in container directory

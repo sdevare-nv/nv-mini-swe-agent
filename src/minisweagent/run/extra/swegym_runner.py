@@ -5,10 +5,10 @@
 
 import concurrent.futures
 import json
+import threading
 import random
 import re
 import subprocess
-import threading
 import time
 import traceback
 import uuid
@@ -43,9 +43,6 @@ DATASET_MAPPING = {
     "gym": "SWE-Gym/SWE-Gym",
     "verified": "princeton-nlp/SWE-Bench_Verified",
 }
-
-
-_OUTPUT_FILE_LOCK = threading.Lock()
 
 
 class TimeoutError(Exception):
@@ -154,18 +151,16 @@ def run_eval(
         res = env.execute(command="git status --porcelain")
         res = env.execute(command="git apply --check patch.diff")
         res = env.execute(command="git apply patch.diff")
-        # print(f"DEBUG git apply output: {res['output']}")
 
     eval_script = test_spec.eval_script.replace("#!/bin/bash", "")
     res = env.execute(command=eval_script, is_eval=True)
 
     test_output, returncode = res["output"], res["returncode"]
-    logger.info(f"DEBUG eval output: {test_output}")
-    logger.info(f"DEBUG returncode: {returncode}")
+    print(f"[EVAL]{instance_id} returncode: {returncode}")
     test_output_path = log_dir / f"test_output_{run_id}.txt"
     with open(test_output_path, "w") as f:
         f.write(test_output)
-        logger.info(f"Test output for {instance_id} written to {test_output_path}")
+        print(f"[EVAL]{instance_id} Test output written to {test_output_path}")
 
     report = get_eval_report(
         test_spec=test_spec,
@@ -173,7 +168,7 @@ def run_eval(
         log_path=test_output_path,
         include_tests_status=True,
     )
-    logger.info(f"report: {report}\nResult for {instance_id}: resolved: {report[instance_id]['resolved']}")
+    print(f"[EVAL]{instance_id} Result: resolved: {report[instance_id]['resolved']}")
 
     with open(report_path, "w") as f:
         f.write(json.dumps(report, indent=4))
@@ -263,7 +258,7 @@ def process_instance(
         else:
             exit_status, result = "Gold Patch Applied", instance.get("patch", "")
 
-        print(f"DEBUG: Running eval for {instance_id}")
+        print(f"[EVAL]{instance_id} Running eval")
         try:
             eval_report = run_with_timeout(
                 run_eval,
@@ -275,14 +270,14 @@ def process_instance(
                 run_id=run_id,
                 is_golden=run_golden,
             )
-            print(f"DEBUG: Eval completed for {instance_id}")
+            print(f"[EVAL]{instance_id} Eval completed")
         except TimeoutError as e:
-            print(f"DEBUG: Eval timed out for {instance_id}: {e}")
+            print(f"[EVAL]{instance_id} Eval timed out: {e}")
             # Force cleanup of the environment to kill any hanging processes
             try:
                 env.cleanup()
             except Exception as cleanup_error:
-                print(f"Warning: Error during environment cleanup: {cleanup_error}")
+                print(f"[EVAL]{instance_id} Warning: Error during environment cleanup: {cleanup_error}")
 
             # Additional aggressive cleanup for singularity environments
             if hasattr(env, "server_process") and env.server_process:
@@ -295,9 +290,9 @@ def process_instance(
                     for pattern in patterns:
                         subprocess.run(["pkill", "-f", pattern], timeout=10, capture_output=True)
 
-                    print(f"Attempted to kill any remaining processes for port {env.port}")
+                    print(f"[EVAL]{instance_id} Attempted to kill any remaining processes for port {env.port}")
                 except Exception as kill_error:
-                    print(f"Warning: Could not kill remaining processes: {kill_error}")
+                    print(f"[EVAL]{instance_id} Warning: Could not kill remaining processes: {kill_error}")
 
             # Create a mock eval report indicating timeout
             eval_report = {
@@ -331,7 +326,7 @@ def process_instance(
             progress_manager.on_instance_end(instance_id, "Error pulling image")
             return None, None
 
-        print(f"Error processing instance {instance_id}: {e}\n{traceback.format_exc()}")
+        print(f"[MINI-SWE-AGENT]{instance_id} Error processing instance: {e}\n{traceback.format_exc()}")
         exit_status, result = type(e).__name__, str(e)
         extra_info = {"traceback": traceback.format_exc()}
         data = save_traj(
