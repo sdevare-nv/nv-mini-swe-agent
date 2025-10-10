@@ -287,13 +287,6 @@ def process_instance(
             # Additional aggressive cleanup for singularity environments
             if hasattr(env, "server_process") and env.server_process:
                 try:
-                    # Kill any remaining processes related to this port/server
-
-                    if hasattr(env, "sif_path") and env.sif_path:
-                        sif_filename = Path(env.sif_path).name
-                        subprocess.run(["pkill", "-f", f"singularity.*{sif_filename}"], timeout=10, capture_output=True)
-                        print(f"Attempted to kill singularity container using {sif_filename}")
-
                     patterns = [
                         f"--port {env.port}",  # FastAPI server with this port
                         f"localhost:{env.port}",  # Any process connecting to this port

@@ -330,14 +330,10 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
                     print("Server process force killed")
                 except Exception:
                     print(f"WARNING: Could not terminate server process {self.server_process.pid}")
-                    # Last resort: kill by SIF file pattern
-                    if self.sif_path:
+                    if self.port:
                         try:
-                            sif_filename = Path(self.sif_path).name
-                            subprocess.run(
-                                ["pkill", "-9", "-f", f"singularity.*{sif_filename}"], timeout=5, capture_output=True
-                            )
-                            print(f"Attempted emergency kill of singularity container {sif_filename}")
+                            subprocess.run(["pkill", "-9", "-f", f"--port {self.port}"], timeout=5, capture_output=True)
+                            print(f"Attempted emergency kill of processes listening on port {self.port}")
                         except Exception as e:
                             print(f"Emergency kill failed: {e}")
 
