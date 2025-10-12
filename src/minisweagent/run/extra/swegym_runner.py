@@ -198,6 +198,7 @@ def process_instance(
     step_timeout: int,
     eval_timeout: int,
     step_limit: int,
+    collapse_limit: int,
 ) -> None:
     """Process a single SWEGym instance."""
     instance_id = instance["instance_id"]
@@ -244,6 +245,7 @@ def process_instance(
 
         agent_config = config.get("agent", {})
         agent_config["step_limit"] = step_limit
+        agent_config["collapse_limit"] = collapse_limit
         agent = ProgressTrackingAgent(
             model,
             env,
@@ -384,6 +386,7 @@ def _main(
     step_timeout: int = 600,
     eval_timeout: int = 600,
     step_limit: int = 250,
+    collapse_limit: int = 0,
 ):
     if responses_create_params:
         responses_create_params = json.loads(responses_create_params)
@@ -457,6 +460,7 @@ def _main(
                 step_timeout,
                 eval_timeout,
                 step_limit,
+                collapse_limit,
             ): instance["instance_id"]
             for instance in instances
         }
@@ -504,6 +508,9 @@ def main(
     step_timeout: int = typer.Option(600, "--step_timeout", help="Timeout for each turn of the agent"),
     eval_timeout: int = typer.Option(600, "--eval_timeout", help="Timeout for the eval"),
     step_limit: int = typer.Option(250, "--step_limit", help="Limit the number of steps the agent takes"),
+    collapse_limit: int = typer.Option(
+        0, "--collapse_limit", help="Terminate agent if it generates the same output this many times (0 to disable)"
+    ),
 ) -> None:
     _main(
         subset=subset,
@@ -528,6 +535,7 @@ def main(
         step_timeout=step_timeout,
         eval_timeout=eval_timeout,
         step_limit=step_limit,
+        collapse_limit=collapse_limit,
     )
 
 

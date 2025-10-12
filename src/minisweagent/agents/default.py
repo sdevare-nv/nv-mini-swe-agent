@@ -4,9 +4,10 @@ import os
 import platform
 import re
 import subprocess
+from collections import deque
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, Optional
+from typing import Any
 
 from jinja2 import Template
 
@@ -28,8 +29,13 @@ class AgentConfig:
     )
     format_error_template: str = "Please always provide EXACTLY ONE action in triple backticks."
     action_observation_template: str = "Observation: {{output}}"
+    collapse_template: str = (
+        "The last {{collapse_limit}} commands you generated were identical: '{{repeated_command}}'. "
+        "This suggests you may be stuck in a loop. Please try a different approach or command."
+    )
     step_limit: int = 0
     cost_limit: float = 3.0
+    collapse_limit: int = 0
 
 
 class NonTerminatingException(Exception):
@@ -56,12 +62,20 @@ class LimitsExceeded(TerminatingException):
     """Raised when the agent has reached its cost or step limit."""
 
 
+class CollapseDetected(NonTerminatingException):
+    """Raised when the agent generates the same output repeatedly."""
+
+
+class CollapseContinued(TerminatingException):
+    """Raised when the agent continues to collapse after being warned."""
+
+
 class DefaultAgent:
     def __init__(
         self,
         model: Model,
         env: Environment,
-        responses_create_params: Optional[Dict[str, Any]],
+        responses_create_params: dict[str, Any] | None,
         *,
         config_class: Callable = AgentConfig,
         **kwargs,
@@ -72,6 +86,8 @@ class DefaultAgent:
         self.responses: list[dict] = []
         self.model = model
         self.env = env
+        self.recent_outputs: deque[str] = deque()
+        self.collapse_warnings: int = 0
 
     def render_template(self, template: str, **kwargs) -> str:
         cs = asdict(self.config) | asdict(self.env.config) | asdict(self.model.config) | platform.uname()._asdict()
@@ -80,9 +96,35 @@ class DefaultAgent:
     def add_message(self, role: str, content: str):
         self.messages.append({"role": role, "content": content})
 
+    def check_collapse(self, content: str):
+        """Check if the model has generated the same output repeatedly."""
+        if self.config.collapse_limit <= 0:
+            return
+
+        if self.recent_outputs.maxlen != self.config.collapse_limit:
+            self.recent_outputs = deque(self.recent_outputs, maxlen=self.config.collapse_limit)
+
+        self.recent_outputs.append(content)
+
+        if len(self.recent_outputs) == self.config.collapse_limit and len(set(self.recent_outputs)) == 1:
+            self.collapse_warnings += 1
+            if self.collapse_warnings >= 2:
+                raise CollapseContinued(
+                    f"Agent continued to generate the same output '{content}' after being warned. Terminating due to persistent collapse."
+                )
+            self.recent_outputs.clear()
+            message = self.render_template(
+                self.config.collapse_template, collapse_limit=self.config.collapse_limit, repeated_command=content
+            )
+            raise CollapseDetected(message)
+        else:
+            self.collapse_warnings = 0
+
     def run(self, task: str) -> tuple[str, str]:
         """Run step() until agent is finished. Return exit status & message"""
         self.messages = []
+        self.recent_outputs = deque()
+        self.collapse_warnings = 0
         if (
             self.responses_create_params
             and "input" in self.responses_create_params
@@ -120,6 +162,7 @@ class DefaultAgent:
         }
 
         response = self.model.query(self.messages, self.responses, **kwargs)
+        self.check_collapse(response["content"])
         self.add_message("assistant", response["content"])
         self.responses.append(response["response_obj"])
         return response
