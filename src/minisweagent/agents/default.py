@@ -113,9 +113,7 @@ class DefaultAgent:
                     f"Agent continued to generate the same output '{content}' after being warned. Terminating due to persistent collapse."
                 )
             self.recent_outputs.clear()
-            message = self.render_template(
-                self.config.collapse_template, collapse_limit=self.config.collapse_limit, repeated_command=content
-            )
+            message = self.render_template(self.config.collapse_template, repeated_command=content)
             raise CollapseDetected(message)
         else:
             self.collapse_warnings = 0
