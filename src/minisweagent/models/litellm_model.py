@@ -17,6 +17,7 @@ from minisweagent.models import GLOBAL_MODEL_STATS
 
 logger = logging.getLogger("litellm_model")
 litellm.return_response_headers = True
+SET_COOKIE_ID = "set-cookie"
 
 
 @dataclass
@@ -73,15 +74,19 @@ class LitellmModel:
     )
     def _query(self, messages: list[dict[str, str]], responses: list[dict[str, str]], **kwargs):
         try:
+            cookie = (
+                self.response_headers.get(SET_COOKIE_ID)
+                if self.response_headers and SET_COOKIE_ID in self.response_headers
+                else None
+            )
             response = litellm.completion(
                 model=self.config.model_name,
                 messages=self._add_tokens_ids_to_messages(messages, responses),
                 timeout=7200,  # 2 hours,
-                extra_headers=self.response_headers if self.response_headers else {} | kwargs.get("extra_headers", {}),
+                extra_headers={SET_COOKIE_ID: cookie} if cookie else {} | kwargs.get("extra_headers", {}),
                 **(self.config.model_kwargs | kwargs),
             )
             if not self.response_headers:
-                print("DEBUG:response_headers", response._response_headers)
                 self.response_headers = response._response_headers
             return response
         except litellm.exceptions.AuthenticationError as e:
