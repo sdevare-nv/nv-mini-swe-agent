@@ -161,7 +161,6 @@ class DefaultAgent:
         }
 
         response = self.model.query(self.messages, self.responses, **kwargs)
-        self.check_collapse(response["content"])
         self.add_message("assistant", response["content"])
         self.responses.append(response["response_obj"])
         return response
@@ -177,7 +176,9 @@ class DefaultAgent:
         """Parse the action from the message. Returns the action."""
         actions = re.findall(r"```bash\s*\n(.*?)\n```", response["content"], re.DOTALL)
         if len(actions) == 1:
-            return {"action": actions[0].strip(), **response}
+            action = actions[0].strip()
+            self.check_collapse(action)  # Check collapse on the parsed command
+            return {"action": action, **response}
         raise FormatError(self.render_template(self.config.format_error_template, actions=actions))
 
     def execute_action(self, action: dict) -> dict:
