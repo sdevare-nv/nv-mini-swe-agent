@@ -81,6 +81,7 @@ class LitellmModel:
                 **(self.config.model_kwargs | kwargs),
             )
             if not self.response_headers:
+                print("DEBUG:response_headers", response._response_headers)
                 self.response_headers = response._response_headers
             return response
         except litellm.exceptions.AuthenticationError as e:
