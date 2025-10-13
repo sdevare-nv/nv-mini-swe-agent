@@ -108,6 +108,7 @@ class DefaultAgent:
 
         if len(self.recent_outputs) == self.config.collapse_limit and len(set(self.recent_outputs)) == 1:
             self.collapse_warnings += 1
+            print(f"DEBUG collapse detected: Command {content} repeated {self.collapse_warnings} times")
             if self.collapse_warnings >= 2:
                 raise CollapseContinued(
                     f"Agent continued to generate the same output '{content}' after being warned. Terminating due to persistent collapse."
