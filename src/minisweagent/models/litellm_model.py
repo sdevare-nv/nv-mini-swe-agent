@@ -53,8 +53,8 @@ class LitellmModel:
         return processed_messages
 
     @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=1, min=20, max=30),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=5, max=15),
         before_sleep=before_sleep_log(logger, logging.WARNING),
         retry=retry_if_not_exception_type(
             (
