@@ -16,6 +16,7 @@ from tenacity import (
 from minisweagent.models import GLOBAL_MODEL_STATS
 
 logger = logging.getLogger("litellm_model")
+litellm.return_response_headers = True
 
 
 @dataclass
@@ -30,6 +31,8 @@ class LitellmModel:
         self.config = LitellmModelConfig(**kwargs)
         self.cost = 0.0
         self.n_calls = 0
+        self.response_headers = None
+
         if self.config.litellm_model_registry is not None:
             litellm.utils.register_model(json.loads(Path(self.config.litellm_model_registry).read_text()))
 
@@ -70,12 +73,18 @@ class LitellmModel:
     )
     def _query(self, messages: list[dict[str, str]], responses: list[dict[str, str]], **kwargs):
         try:
-            return litellm.completion(
+            response = litellm.completion(
                 model=self.config.model_name,
                 messages=self._add_tokens_ids_to_messages(messages, responses),
-                timeout=7200,  # 2 hours
+                timeout=7200,  # 2 hours,
+                extra_headers={
+                    (self.response_headers if self.response_headers else {}) | kwargs.get("extra_headers", {})
+                },
                 **(self.config.model_kwargs | kwargs),
             )
+            if not self.response_headers:
+                self.response_headers = response._response_headers
+            return response
         except litellm.exceptions.AuthenticationError as e:
             e.message += " You can permanently set your API key with `mini-extra config set KEY VALUE`."
             raise e
