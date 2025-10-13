@@ -77,9 +77,7 @@ class LitellmModel:
                 model=self.config.model_name,
                 messages=self._add_tokens_ids_to_messages(messages, responses),
                 timeout=7200,  # 2 hours,
-                extra_headers={
-                    (self.response_headers if self.response_headers else {}) | kwargs.get("extra_headers", {})
-                },
+                extra_headers=self.response_headers if self.response_headers else {} | kwargs.get("extra_headers", {}),
                 **(self.config.model_kwargs | kwargs),
             )
             if not self.response_headers:
