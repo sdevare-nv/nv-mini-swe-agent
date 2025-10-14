@@ -34,6 +34,12 @@ def find_free_port():
         return s.getsockname()[1]
 
 
+def is_port_in_use(host: str, port: int) -> bool:
+    """Check if a port is already in use."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex((host, port)) == 0
+
+
 @dataclass
 class SingularityEnvironmentConfig:
     """Configuration for the Singularity environment."""
@@ -89,7 +95,7 @@ class SingularityEnvironment:
         try:
             self._setup_sif()
             self._create_server_script()
-            self.port = find_free_port()
+            self._find_available_port()
             self._install_dependencies()
             self._health_check()
         except KeyboardInterrupt:
@@ -296,6 +302,19 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".py", prefix="singularity_server_") as f:
             f.write(server_script_content)
             self.server_script_path = f.name
+
+    def _find_available_port(self):
+        """Find an available port, handling conflicts proactively."""
+        from random import uniform
+
+        self.port = find_free_port()
+
+        while is_port_in_use("0.0.0.0", self.port):
+            print(f"Port {self.port} is already in use, finding alternative...")
+            self.port = find_free_port()
+            time.sleep(uniform(1, 3))
+
+        print(f"Selected port {self.port} for container server")
 
     def execute(self, command: str, cwd: str = "", is_eval: bool = False) -> dict[str, Any]:
         """
