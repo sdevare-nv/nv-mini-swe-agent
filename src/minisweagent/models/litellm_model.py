@@ -75,16 +75,16 @@ class LitellmModel:
     )
     def _query(self, messages: list[dict[str, str]], responses: list[dict[str, str]], **kwargs):
         try:
-            cookie = (
+            raw_cookie = (
                 self.response_headers.get(SET_COOKIE_ID)
                 if self.response_headers and SET_COOKIE_ID in self.response_headers
                 else None
             )
-            print("DEBUG:gym-cookie", cookie)
             extra_headers = kwargs.get("extra_headers", {}).copy()
-            if cookie:
-                # Use 'Cookie' header for sending cookies to server
-                extra_headers["Cookie"] = cookie
+            if raw_cookie:
+                cookie_value = raw_cookie.split(";")[0].strip()
+                extra_headers["Cookie"] = cookie_value
+                print("DEBUG:gym-parsed-cookie", cookie_value)
 
             response = litellm.completion(
                 model=self.config.model_name,
