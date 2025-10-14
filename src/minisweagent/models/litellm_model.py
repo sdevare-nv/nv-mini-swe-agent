@@ -17,7 +17,8 @@ from minisweagent.models import GLOBAL_MODEL_STATS
 
 logger = logging.getLogger("litellm_model")
 litellm.return_response_headers = True
-SET_COOKIE_ID = "set-cookie"
+# SET_COOKIE_ID = "set-cookie"
+SET_COOKIE_ID = "set-cookie"  # Use standard HTTP header name for receiving cookies
 
 
 @dataclass
@@ -80,11 +81,16 @@ class LitellmModel:
                 else None
             )
             print("DEBUG:gym-cookie", cookie)
+            extra_headers = kwargs.get("extra_headers", {}).copy()
+            if cookie:
+                # Use 'Cookie' header for sending cookies to server
+                extra_headers["Cookie"] = cookie
+
             response = litellm.completion(
                 model=self.config.model_name,
                 messages=self._add_tokens_ids_to_messages(messages, responses),
                 timeout=7200,  # 2 hours,
-                extra_headers={SET_COOKIE_ID: cookie} if cookie else {} | kwargs.get("extra_headers", {}),
+                extra_headers=extra_headers,
                 **(self.config.model_kwargs | kwargs),
             )
             if not self.response_headers:
