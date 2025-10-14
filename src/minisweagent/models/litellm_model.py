@@ -79,6 +79,7 @@ class LitellmModel:
                 if self.response_headers and SET_COOKIE_ID in self.response_headers
                 else None
             )
+            print("DEBUG:gym-cookie", cookie)
             response = litellm.completion(
                 model=self.config.model_name,
                 messages=self._add_tokens_ids_to_messages(messages, responses),
