@@ -87,7 +87,6 @@ class LitellmModel:
             if raw_cookie:
                 cookie_value = raw_cookie.split(";")[0].strip()
                 extra_headers["Cookie"] = cookie_value
-                print("DEBUG:gym-parsed-cookie", cookie_value)
 
             response = litellm.completion(
                 model=self.config.model_name,

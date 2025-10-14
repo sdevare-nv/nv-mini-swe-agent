@@ -3,7 +3,6 @@ import asyncio
 import os
 import signal
 import socket
-import subprocess
 import textwrap
 import time
 from contextlib import asynccontextmanager
@@ -60,7 +59,7 @@ def signal_handler(signum, frame):
 
 
 @app.post("/run_command", response_model=CommandResult)
-def run_command(req: CommandRequest):
+async def run_command(req: CommandRequest):
     activation_cmd = ""
     if CONDA_ENV:
         # TODO(sugam): /testbed is hardcoded here.
@@ -72,26 +71,24 @@ def run_command(req: CommandRequest):
     full_command = f"{activation_cmd}{clean_command}"
 
     try:
-        result = subprocess.run(
+        process = await asyncio.create_subprocess_shell(
             full_command,
-            shell=True,
             executable="/bin/bash",
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            timeout=req.timeout,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
         )
 
-        full_output = result.stdout
-        actual_output = full_output.strip()
+        stdout, _ = await asyncio.wait_for(process.communicate(), timeout=req.timeout)
+        actual_output = stdout.decode("utf-8", errors="replace").strip()
 
-        return CommandResult(output=actual_output, returncode=result.returncode)
-    except subprocess.TimeoutExpired as e:
+        return CommandResult(output=actual_output, returncode=process.returncode)
+    except asyncio.TimeoutError:
+        # Kill the process if it's still running
+        if process.returncode is None:
+            process.kill()
+            await process.wait()
+
         timeout_output = f"Command timed out after {req.timeout} seconds"
-        if e.stdout:
-            timeout_output += f"\nPartial output:\n{e.stdout.decode('utf-8', errors='replace').strip()}"
         return CommandResult(output=timeout_output, returncode=124)
 
 

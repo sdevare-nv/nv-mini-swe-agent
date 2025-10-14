@@ -50,36 +50,6 @@ class TimeoutError(Exception):
 
     pass
 
-
-def run_with_timeout(func, timeout_seconds, *args, **kwargs):
-    """
-    Run a function with a timeout. If the function doesn't complete within
-    timeout_seconds, raise TimeoutError and attempt cleanup.
-    """
-    result = [None]
-    exception = [None]
-
-    def target():
-        try:
-            result[0] = func(*args, **kwargs)
-        except Exception as e:
-            exception[0] = e
-
-    thread = threading.Thread(target=target)
-    thread.daemon = True
-    thread.start()
-    thread.join(timeout_seconds)
-
-    if thread.is_alive():
-        # Thread is still running, which means timeout occurred
-        raise TimeoutError(f"Function timed out after {timeout_seconds} seconds")
-
-    if exception[0]:
-        raise exception[0]
-
-    return result[0]
-
-
 class ProgressTrackingAgent(DefaultAgent):
     """Simple wrapper around DefaultAgent that provides progress updates."""
 
@@ -226,6 +196,7 @@ def process_instance(
     eval_report = None
     extra_info = None
     try:
+        print(f"[EVAL]{instance_id} Creating environment...", flush=True)
         env = env_cls(
             cache_dir_template=cache_dir_template,
             **(
@@ -238,6 +209,8 @@ def process_instance(
                 }
             ),
         )
+        print(f"[EVAL]{instance_id} Environment created", flush=True)
+
         if convert_to_sif:
             progress_manager.on_instance_end(instance_id, "Image Converted to SIF")
             env.cleanup()
@@ -255,59 +228,24 @@ def process_instance(
             **agent_config,
         )
 
+        print(f"[EVAL]{instance_id} Running agent...", flush=True)
         if not run_golden:
             exit_status, result = agent.run(task)
         else:
             exit_status, result = "Gold Patch Applied", instance.get("patch", "")
 
-        print(f"[EVAL]{instance_id} Running eval")
-        try:
-            eval_report = run_with_timeout(
-                run_eval,
-                eval_timeout,
-                instance=instance,
-                env=env,
-                model_patch=result,
-                instance_dir=instance_dir,
-                run_id=run_id,
-                is_golden=run_golden,
-            )
-            print(f"[EVAL]{instance_id} Eval completed")
-        except TimeoutError as e:
-            print(f"[EVAL]{instance_id} Eval timed out: {e}")
-            # Force cleanup of the environment to kill any hanging processes
-            try:
-                env.cleanup()
-            except Exception as cleanup_error:
-                print(f"[EVAL]{instance_id} Warning: Error during environment cleanup: {cleanup_error}")
+        print(f"[EVAL]{instance_id} Running eval", flush=True)
 
-            # Additional aggressive cleanup for singularity environments
-            if hasattr(env, "server_process") and env.server_process:
-                try:
-                    patterns = [
-                        f"--port {env.port}",  # FastAPI server with this port
-                        f"localhost:{env.port}",  # Any process connecting to this port
-                    ]
+        eval_report = run_eval(
+            instance=instance,
+            env=env,
+            model_patch=result,
+            instance_dir=instance_dir,
+            run_id=run_id,
+            is_golden=run_golden,
+        )
+        print(f"[EVAL]{instance_id} Eval completed", flush=True)
 
-                    for pattern in patterns:
-                        subprocess.run(["pkill", "-f", pattern], timeout=10, capture_output=True)
-
-                    print(f"[EVAL]{instance_id} Attempted to kill any remaining processes for port {env.port}")
-                except Exception as kill_error:
-                    print(f"[EVAL]{instance_id} Warning: Could not kill remaining processes: {kill_error}")
-
-            # Create a mock eval report indicating timeout
-            eval_report = {
-                "instance_id": instance_id,
-                "model_patch": result,
-                "eval_report": {
-                    instance_id: {
-                        "resolved": False,
-                        "error": f"Evaluation timed out after {eval_timeout} seconds",
-                        "timeout": True,
-                    }
-                },
-            }
         data = save_traj(
             agent,
             instance_dir / f"{instance_id}_{run_id}.traj.json",
@@ -354,12 +292,12 @@ def filter_instances(
     before_filter = len(instances)
     instances = [instance for instance in instances if re.match(filter_spec, instance["instance_id"])]
     if (after_filter := len(instances)) != before_filter:
-        print(f"Instance filter: {before_filter} -> {after_filter} instances")
+        print(f"Instance filter: {before_filter} -> {after_filter} instances", flush=True)
     if slice_spec:
         values = [int(x) if x else None for x in slice_spec.split(":")]
         instances = instances[slice(*values)]
         if (after_slice := len(instances)) != before_filter:
-            print(f"Instance slice: {before_filter} -> {after_slice} instances")
+            print(f"Instance slice: {before_filter} -> {after_slice} instances", flush=True)
     return instances
 
 
@@ -394,7 +332,6 @@ def _main(
     run_id = f"{int(time.time())}_{str(uuid.uuid4())}"
     env_cls = ENV_MAP[env]
     dataset_path = DATASET_MAPPING.get(subset, subset)
-    print(f"Loading dataset {dataset_path}, split {split}...")
 
     instances = [instance_dict] if instance_dict else list(load_dataset(dataset_path, split=split))
 
@@ -411,8 +348,8 @@ def _main(
     output_path = Path(output)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    print(f"Running on {len(instances)} instances...")
-    print(f"Results will be saved to {output_path}")
+    print(f"Running on {len(instances)} instances...", flush=True)
+    print(f"Results will be saved to {output_path}", flush=True)
 
     progress_manager = RunBatchProgressManager(
         len(instances), output_path / f"exit_statuses_{time.time()}_{run_id}.yaml"
@@ -426,7 +363,7 @@ def _main(
             try:
                 data, eval_report = future.result()
                 completed += 1
-                print(f"Progress: {completed}/{total} instances completed")
+                print(f"Progress: {completed}/{total} instances completed", flush=True)
                 if data is None:
                     continue
                 results[data["instance_id"]] = data
@@ -435,7 +372,7 @@ def _main(
                 pass
             except Exception as e:
                 instance_id = futures[future]
-                print(f"Error in future for instance {instance_id}: {e}")
+                print(f"Error in future for instance {instance_id}: {e}", flush=True)
                 traceback.print_exc()
                 progress_manager.on_uncaught_exception(instance_id, e)
 
@@ -467,7 +404,7 @@ def _main(
         try:
             process_futures(futures)
         except KeyboardInterrupt:
-            print("Cancelling all pending jobs. Press ^C again to exit immediately.")
+            print("Cancelling all pending jobs. Press ^C again to exit immediately.", flush=True)
             for future in futures:
                 if not future.running() and not future.done():
                     future.cancel()

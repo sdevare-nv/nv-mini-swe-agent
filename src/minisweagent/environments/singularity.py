@@ -150,7 +150,6 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
 
         cmd.extend(["/bin/bash", "-c", install_and_run_cmd])
 
-        print(f"Starting container with command: {shlex.join(cmd)}")
         self.server_process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
