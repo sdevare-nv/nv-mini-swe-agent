@@ -3,6 +3,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+import uuid
 
 import litellm
 from tenacity import (
@@ -34,6 +35,7 @@ class LitellmModel:
         self.cost = 0.0
         self.n_calls = 0
         self.response_headers = None
+        self.x_client_id = str(uuid.uuid4())
 
         if self.config.litellm_model_registry is not None:
             litellm.utils.register_model(json.loads(Path(self.config.litellm_model_registry).read_text()))
@@ -81,6 +83,7 @@ class LitellmModel:
                 else None
             )
             extra_headers = kwargs.get("extra_headers", {}).copy()
+            extra_headers["X-Client-ID"] = self.x_client_id
             if raw_cookie:
                 cookie_value = raw_cookie.split(";")[0].strip()
                 extra_headers["Cookie"] = cookie_value
