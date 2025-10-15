@@ -1,6 +1,7 @@
 import glob
 import logging
 import os
+import random
 import shlex
 import signal
 import socket
@@ -13,13 +14,6 @@ from pathlib import Path
 from typing import Any
 
 import requests
-from tenacity import (
-    before_sleep_log,
-    retry,
-    retry_if_not_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
 
 logger = logging.getLogger("singularity_environment")
 
@@ -87,6 +81,8 @@ class SingularityEnvironment:
         self._is_cleaned_up = False
         self._fallback_mode = False
         self.pwd = "testbed"
+        self._install_cnt = 0
+        self._max_install_cnt = 3
 
         assert self.config.cache_dir_template is not None, (
             "cache_dir_template cannot be None for Singularity environment"
@@ -96,7 +92,7 @@ class SingularityEnvironment:
             self._setup_sif()
             self._create_server_script()
             self._find_available_port()
-            self._install_dependencies()
+            self._spin_up_server()
             self._health_check()
         except KeyboardInterrupt:
             print("Initialization interrupted by user")
@@ -107,21 +103,8 @@ class SingularityEnvironment:
             print("Enabling fallback mode due to initialization failure.")
             self._fallback_mode = True
 
-    @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=2, min=20, max=60),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
-        retry=(
-            retry_if_not_exception_type(
-                (
-                    FileNotFoundError,
-                    PermissionError,
-                    KeyboardInterrupt,
-                )
-            )
-        ),
-    )
-    def _install_dependencies(self):
+    def _spin_up_server(self) -> None:
+        print(f"Spinning up server on port {self.port}...")
         server_path_in_container = f"/tmp/{os.path.basename(self.server_script_path)}"
 
         cmd = [
@@ -175,7 +158,14 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
 
         while time.time() - start_time < max_wait:
             if self.server_process and self.server_process.poll() is not None:
-                break
+                print(f"Container server failed to start: {self.server_process.stdout.read()}")
+                time.sleep(random.uniform(1, 3))
+                self._install_cnt += 1
+                if self._install_cnt > self._max_install_cnt:
+                    print(f"Failed to start the Singularity server after {self._max_install_cnt} retries.")
+                    break
+                self._spin_up_server()
+                continue
 
             try:
                 response = requests.get(f"http://localhost:{self.port}/health", timeout=10)
@@ -190,7 +180,6 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
             except requests.exceptions.RequestException:
                 time.sleep(1)
 
-        # If loop finishes or breaks, the server failed to start
         elapsed = time.time() - start_time
         print(f"Failed to start the Singularity server within {elapsed:.1f}s (timeout: {max_wait}s).")
         if self.server_process and self.server_process.stdout:
