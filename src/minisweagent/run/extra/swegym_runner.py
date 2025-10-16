@@ -5,14 +5,15 @@
 
 import concurrent.futures
 import json
+import threading
 import random
 import re
-import threading
+import subprocess
 import time
 import traceback
 import uuid
 from pathlib import Path
-from typing import cast, Any
+from typing import Any, cast
 
 import typer
 import yaml
@@ -44,8 +45,10 @@ DATASET_MAPPING = {
 }
 
 
-_OUTPUT_FILE_LOCK = threading.Lock()
+class TimeoutError(Exception):
+    """Custom timeout exception."""
 
+    pass
 
 class ProgressTrackingAgent(DefaultAgent):
     """Simple wrapper around DefaultAgent that provides progress updates."""
@@ -118,18 +121,16 @@ def run_eval(
         res = env.execute(command="git status --porcelain")
         res = env.execute(command="git apply --check patch.diff")
         res = env.execute(command="git apply patch.diff")
-        # print(f"DEBUG git apply output: {res['output']}")
 
     eval_script = test_spec.eval_script.replace("#!/bin/bash", "")
     res = env.execute(command=eval_script, is_eval=True)
 
     test_output, returncode = res["output"], res["returncode"]
-    logger.info(f"DEBUG eval output: {test_output}")
-    logger.info(f"DEBUG returncode: {returncode}")
+    print(f"[EVAL]{instance_id} returncode: {returncode}")
     test_output_path = log_dir / f"test_output_{run_id}.txt"
     with open(test_output_path, "w") as f:
         f.write(test_output)
-        logger.info(f"Test output for {instance_id} written to {test_output_path}")
+        print(f"[EVAL]{instance_id} Test output written to {test_output_path}")
 
     report = get_eval_report(
         test_spec=test_spec,
@@ -137,7 +138,7 @@ def run_eval(
         log_path=test_output_path,
         include_tests_status=True,
     )
-    logger.info(f"report: {report}\nResult for {instance_id}: resolved: {report[instance_id]['resolved']}")
+    print(f"[EVAL]{instance_id} Result: resolved: {report[instance_id]['resolved']}")
 
     with open(report_path, "w") as f:
         f.write(json.dumps(report, indent=4))
@@ -167,6 +168,7 @@ def process_instance(
     step_timeout: int,
     eval_timeout: int,
     step_limit: int,
+    collapse_limit: int,
 ) -> None:
     """Process a single SWEGym instance."""
     instance_id = instance["instance_id"]
@@ -194,6 +196,7 @@ def process_instance(
     eval_report = None
     extra_info = None
     try:
+        print(f"[EVAL]{instance_id} Creating environment...", flush=True)
         env = env_cls(
             cache_dir_template=cache_dir_template,
             **(
@@ -206,6 +209,8 @@ def process_instance(
                 }
             ),
         )
+        print(f"[EVAL]{instance_id} Environment created", flush=True)
+
         if convert_to_sif:
             progress_manager.on_instance_end(instance_id, "Image Converted to SIF")
             env.cleanup()
@@ -213,6 +218,7 @@ def process_instance(
 
         agent_config = config.get("agent", {})
         agent_config["step_limit"] = step_limit
+        agent_config["collapse_limit"] = collapse_limit
         agent = ProgressTrackingAgent(
             model,
             env,
@@ -222,13 +228,14 @@ def process_instance(
             **agent_config,
         )
 
+        print(f"[EVAL]{instance_id} Running agent...", flush=True)
         if not run_golden:
             exit_status, result = agent.run(task)
         else:
             exit_status, result = "Gold Patch Applied", instance.get("patch", "")
 
-        # print(f"DEBUG: result: {result}", instance_id)
-        # print(f"DEBUG: Running eval for {instance_id}")
+        print(f"[EVAL]{instance_id} Running eval", flush=True)
+
         eval_report = run_eval(
             instance=instance,
             env=env,
@@ -237,7 +244,8 @@ def process_instance(
             run_id=run_id,
             is_golden=run_golden,
         )
-        print(f"DEBUG: Eval completed for {instance_id}")
+        print(f"[EVAL]{instance_id} Eval completed", flush=True)
+
         data = save_traj(
             agent,
             instance_dir / f"{instance_id}_{run_id}.traj.json",
@@ -258,7 +266,7 @@ def process_instance(
             progress_manager.on_instance_end(instance_id, "Error pulling image")
             return None, None
 
-        print(f"Error processing instance {instance_id}: {e}\n{traceback.format_exc()}")
+        print(f"[MINI-SWE-AGENT]{instance_id} Error processing instance: {e}\n{traceback.format_exc()}")
         exit_status, result = type(e).__name__, str(e)
         extra_info = {"traceback": traceback.format_exc()}
         data = save_traj(
@@ -284,12 +292,12 @@ def filter_instances(
     before_filter = len(instances)
     instances = [instance for instance in instances if re.match(filter_spec, instance["instance_id"])]
     if (after_filter := len(instances)) != before_filter:
-        print(f"Instance filter: {before_filter} -> {after_filter} instances")
+        print(f"Instance filter: {before_filter} -> {after_filter} instances", flush=True)
     if slice_spec:
         values = [int(x) if x else None for x in slice_spec.split(":")]
         instances = instances[slice(*values)]
         if (after_slice := len(instances)) != before_filter:
-            print(f"Instance slice: {before_filter} -> {after_slice} instances")
+            print(f"Instance slice: {before_filter} -> {after_slice} instances", flush=True)
     return instances
 
 
@@ -316,6 +324,7 @@ def _main(
     step_timeout: int = 600,
     eval_timeout: int = 600,
     step_limit: int = 250,
+    collapse_limit: int = 0,
 ):
     if responses_create_params:
         responses_create_params = json.loads(responses_create_params)
@@ -323,7 +332,6 @@ def _main(
     run_id = f"{int(time.time())}_{str(uuid.uuid4())}"
     env_cls = ENV_MAP[env]
     dataset_path = DATASET_MAPPING.get(subset, subset)
-    print(f"Loading dataset {dataset_path}, split {split}...")
 
     instances = [instance_dict] if instance_dict else list(load_dataset(dataset_path, split=split))
 
@@ -340,8 +348,8 @@ def _main(
     output_path = Path(output)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    print(f"Running on {len(instances)} instances...")
-    print(f"Results will be saved to {output_path}")
+    print(f"Running on {len(instances)} instances...", flush=True)
+    print(f"Results will be saved to {output_path}", flush=True)
 
     progress_manager = RunBatchProgressManager(
         len(instances), output_path / f"exit_statuses_{time.time()}_{run_id}.yaml"
@@ -355,7 +363,7 @@ def _main(
             try:
                 data, eval_report = future.result()
                 completed += 1
-                print(f"Progress: {completed}/{total} instances completed")
+                print(f"Progress: {completed}/{total} instances completed", flush=True)
                 if data is None:
                     continue
                 results[data["instance_id"]] = data
@@ -364,7 +372,7 @@ def _main(
                 pass
             except Exception as e:
                 instance_id = futures[future]
-                print(f"Error in future for instance {instance_id}: {e}")
+                print(f"Error in future for instance {instance_id}: {e}", flush=True)
                 traceback.print_exc()
                 progress_manager.on_uncaught_exception(instance_id, e)
 
@@ -389,13 +397,14 @@ def _main(
                 step_timeout,
                 eval_timeout,
                 step_limit,
+                collapse_limit,
             ): instance["instance_id"]
             for instance in instances
         }
         try:
             process_futures(futures)
         except KeyboardInterrupt:
-            print("Cancelling all pending jobs. Press ^C again to exit immediately.")
+            print("Cancelling all pending jobs. Press ^C again to exit immediately.", flush=True)
             for future in futures:
                 if not future.running() and not future.done():
                     future.cancel()
@@ -436,6 +445,9 @@ def main(
     step_timeout: int = typer.Option(600, "--step_timeout", help="Timeout for each turn of the agent"),
     eval_timeout: int = typer.Option(600, "--eval_timeout", help="Timeout for the eval"),
     step_limit: int = typer.Option(250, "--step_limit", help="Limit the number of steps the agent takes"),
+    collapse_limit: int = typer.Option(
+        0, "--collapse_limit", help="Terminate agent if it generates the same output this many times (0 to disable)"
+    ),
 ) -> None:
     _main(
         subset=subset,
@@ -460,6 +472,7 @@ def main(
         step_timeout=step_timeout,
         eval_timeout=eval_timeout,
         step_limit=step_limit,
+        collapse_limit=collapse_limit,
     )
 
 

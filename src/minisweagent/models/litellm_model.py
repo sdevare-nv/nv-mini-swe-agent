@@ -3,6 +3,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+import uuid
 
 import litellm
 from tenacity import (
@@ -16,6 +17,9 @@ from tenacity import (
 from minisweagent.models import GLOBAL_MODEL_STATS
 
 logger = logging.getLogger("litellm_model")
+litellm.return_response_headers = True
+# SET_COOKIE_ID = "set-cookie"
+SET_COOKIE_ID = "set-cookie"  # Use standard HTTP header name for receiving cookies
 
 
 @dataclass
@@ -30,6 +34,9 @@ class LitellmModel:
         self.config = LitellmModelConfig(**kwargs)
         self.cost = 0.0
         self.n_calls = 0
+        self.response_headers = None
+        self.x_client_id = str(uuid.uuid4())
+
         if self.config.litellm_model_registry is not None:
             litellm.utils.register_model(json.loads(Path(self.config.litellm_model_registry).read_text()))
 
@@ -53,8 +60,8 @@ class LitellmModel:
         return processed_messages
 
     @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_exponential(multiplier=1, min=20, max=30),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=5, max=15),
         before_sleep=before_sleep_log(logger, logging.WARNING),
         retry=retry_if_not_exception_type(
             (
@@ -70,12 +77,27 @@ class LitellmModel:
     )
     def _query(self, messages: list[dict[str, str]], responses: list[dict[str, str]], **kwargs):
         try:
-            return litellm.completion(
+            raw_cookie = (
+                self.response_headers.get(SET_COOKIE_ID)
+                if self.response_headers and SET_COOKIE_ID in self.response_headers
+                else None
+            )
+            extra_headers = kwargs.get("extra_headers", {}).copy()
+            extra_headers["X-Client-ID"] = self.x_client_id
+            if raw_cookie:
+                cookie_value = raw_cookie.split(";")[0].strip()
+                extra_headers["Cookie"] = cookie_value
+
+            response = litellm.completion(
                 model=self.config.model_name,
                 messages=self._add_tokens_ids_to_messages(messages, responses),
-                timeout=7200,  # 2 hours
+                timeout=7200,  # 2 hours,
+                extra_headers=extra_headers,
                 **(self.config.model_kwargs | kwargs),
             )
+            if not self.response_headers:
+                self.response_headers = response._response_headers
+            return response
         except litellm.exceptions.AuthenticationError as e:
             e.message += " You can permanently set your API key with `mini-extra config set KEY VALUE`."
             raise e

@@ -1,5 +1,7 @@
 import glob
+import logging
 import os
+import random
 import shlex
 import signal
 import socket
@@ -13,14 +15,23 @@ from typing import Any
 
 import requests
 
+logger = logging.getLogger("singularity_environment")
 
-# --- Helper function to find a free port ---
+END_TRAJECTORY_COMMAND = "echo MINI_SWE_AGENT_FINAL_OUTPUT && git add -A && git diff --cached"
+
+
 def find_free_port():
     """Finds and returns an available TCP port on the host."""
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
         s.bind(("", 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
+
+
+def is_port_in_use(host: str, port: int) -> bool:
+    """Check if a port is already in use."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex((host, port)) == 0
 
 
 @dataclass
@@ -68,7 +79,10 @@ class SingularityEnvironment:
         self.port: int | None = None
         self.config = config_class(**kwargs)
         self._is_cleaned_up = False
+        self._fallback_mode = False
         self.pwd = "testbed"
+        self._install_cnt = 0
+        self._max_install_cnt = 3
 
         assert self.config.cache_dir_template is not None, (
             "cache_dir_template cannot be None for Singularity environment"
@@ -77,60 +91,65 @@ class SingularityEnvironment:
         try:
             self._setup_sif()
             self._create_server_script()
-            self.port = find_free_port()
+            self._find_available_port()
+            self._spin_up_server()
+            self._health_check()
+        except KeyboardInterrupt:
+            print("Initialization interrupted by user")
+            self.cleanup()
+            raise
+        except Exception as e:
+            print(f"An error occurred during initialization: {e}")
+            print("Enabling fallback mode due to initialization failure.")
+            self._fallback_mode = True
 
-            server_path_in_container = f"/tmp/{os.path.basename(self.server_script_path)}"
+    def _spin_up_server(self) -> None:
+        print(f"Spinning up server on port {self.port}...")
+        server_path_in_container = f"/tmp/{os.path.basename(self.server_script_path)}"
 
-            cmd = [
-                self.config.executable,
-                "run",
-                "--writable-tmpfs",
-                "--containall",
-                "--no-mount",
-                "home,tmp,bind-paths",
-                "--bind",
-                f"{self.server_script_path}:{server_path_in_container}:ro",
-                "--pwd",
-                self.pwd,
-                *self.config.start_args,
-            ]
-            for key, value in self.config.env.items():
-                cmd.extend(["--env", f"{key}={value}"])
+        cmd = [
+            self.config.executable,
+            "run",
+            "--writable-tmpfs",
+            "--containall",
+            "--no-mount",
+            "home,tmp,bind-paths",
+            "--bind",
+            f"{self.server_script_path}:{server_path_in_container}:ro",
+            "--pwd",
+            self.pwd,
+            *self.config.start_args,
+        ]
+        for key, value in self.config.env.items():
+            cmd.extend(["--env", f"{key}={value}"])
 
-            cmd.append(self.sif_path)
+        cmd.append(self.sif_path)
 
-            pip_timeout = self.config.step_timeout + 60
+        pip_timeout = self.config.step_timeout + 60
 
-            # The installation directory
-            uv_install_dir = "/tmp/singularity_server/uv"
-            venv_path = "/tmp/singularity_server/.venv"
+        # The installation directory
+        uv_install_dir = "/tmp/singularity_server/uv"
+        venv_path = "/tmp/singularity_server/.venv"
 
-            install_and_run_cmd = f"""echo '127.0.0.1 localhost' > /etc/hosts & mkdir -p {uv_install_dir} && cd /tmp/singularity_server &&
+        install_and_run_cmd = f"""echo '127.0.0.1 localhost' > /etc/hosts & mkdir -p {uv_install_dir} && cd /tmp/singularity_server &&
 curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="{uv_install_dir}" sh && source {uv_install_dir}/env &&
 uv venv {venv_path} --python 3.12 &&
 timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/python "fastapi[standard]==0.117.1" &&
 {venv_path}/bin/python {server_path_in_container} --port {self.port}"""
 
-            cmd.extend(["/bin/bash", "-c", install_and_run_cmd])
+        cmd.extend(["/bin/bash", "-c", install_and_run_cmd])
 
-            print(f"Starting container with command: {shlex.join(cmd)}")
-            self.server_process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                start_new_session=True,
-            )
+        self.server_process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            start_new_session=True,
+        )
 
-            self._health_check()
-            print(f"Container server started successfully on port {self.port}.")
-
-        except (Exception, KeyboardInterrupt) as e:
-            print(f"An error occurred during initialization: {e}")
-            self.cleanup()
-            raise
+        print(f"Container server started successfully on port {self.port}.")
 
     def _health_check(self):
         """Waits for the container's API server to become responsive."""
@@ -139,14 +158,21 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
 
         while time.time() - start_time < max_wait:
             if self.server_process and self.server_process.poll() is not None:
-                break
+                print(f"Container server failed to start: {self.server_process.stdout.read()}")
+                time.sleep(random.uniform(1, 3))
+                self._install_cnt += 1
+                if self._install_cnt > self._max_install_cnt:
+                    print(f"Failed to start the Singularity server after {self._max_install_cnt} retries.")
+                    break
+                self._spin_up_server()
+                continue
 
             try:
                 response = requests.get(f"http://localhost:{self.port}/health", timeout=10)
                 if response.status_code == 200:
                     response = requests.post(
                         f"http://localhost:{self.port}/run_command",
-                        json={"command": "git gc"},
+                        json={"command": "echo 'hello'"},
                         timeout=self.config.step_timeout,
                     )
                     response.raise_for_status()
@@ -154,14 +180,16 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
             except requests.exceptions.RequestException:
                 time.sleep(1)
 
-        # If loop finishes or breaks, the server failed to start
         elapsed = time.time() - start_time
         print(f"Failed to start the Singularity server within {elapsed:.1f}s (timeout: {max_wait}s).")
         if self.server_process and self.server_process.stdout:
             logs = self.server_process.stdout.read()
             print(f"--- Container Server Logs ---\n{logs}")
 
-        raise RuntimeError("Failed to start the Singularity server.")
+        # Set fallback mode flag
+        self._fallback_mode = True
+        print("Singularity server failed to start. Enabling fallback mode.")
+        return
 
     def _find_container(self) -> str:
         """Find the container file using multiple strategies.
@@ -185,19 +213,16 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
         # Try lowercase version
         container_name_lower = container_formatter.format(instance_id=instance_id.replace("__", "_1776_").lower())
         if os.path.exists(container_name_lower):
-            print(f"Using _1776_ replacement (lowercase): {container_name_lower}")
             return container_name_lower
 
         # Strategy 2: Try _s_ replacement (original case and lowercase)
         container_name_s = container_formatter.format(instance_id=instance_id.replace("__", "_s_"))
         if os.path.exists(container_name_s):
-            print(f"Using _s_ replacement: {container_name_s}")
             return container_name_s
 
         # Try lowercase version
         container_name_s_lower = container_formatter.format(instance_id=instance_id.replace("__", "_s_").lower())
         if os.path.exists(container_name_s_lower):
-            print(f"Using _s_ replacement (lowercase): {container_name_s_lower}")
             return container_name_s_lower
 
         # Strategy 3: Fuzzy search in container directory
@@ -267,6 +292,19 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
             f.write(server_script_content)
             self.server_script_path = f.name
 
+    def _find_available_port(self):
+        """Find an available port, handling conflicts proactively."""
+        from random import uniform
+
+        self.port = find_free_port()
+
+        while is_port_in_use("0.0.0.0", self.port):
+            print(f"Port {self.port} is already in use, finding alternative...")
+            self.port = find_free_port()
+            time.sleep(uniform(1, 3))
+
+        print(f"Selected port {self.port} for container server")
+
     def execute(self, command: str, cwd: str = "", is_eval: bool = False) -> dict[str, Any]:
         """
         Executes a command by calling the API endpoint in the container.
@@ -274,6 +312,17 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
         Returns:
             A dictionary with 'output' (str) and 'returncode' (int).
         """
+        if self._fallback_mode:
+            if command.strip() == END_TRAJECTORY_COMMAND:
+                return {"output": "MINI_SWE_AGENT_FINAL_OUTPUT", "returncode": 0}
+            else:
+                prompt_message = (
+                    "The environment container failed to start. "
+                    "Please run the following command to end the trajectory: "
+                    f"{END_TRAJECTORY_COMMAND}"
+                )
+                return {"output": prompt_message, "returncode": 1}
+
         if self._is_cleaned_up or not self.server_process or not self.port:
             raise RuntimeError("Cannot execute command: The environment has been cleaned up or initialization failed.")
 
@@ -304,56 +353,44 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
 
         print(f"\nCleaning up Singularity environment (port {self.port})...")
 
+        # Try graceful shutdown first
         if self.port and self.server_process and self.server_process.poll() is None:
             try:
                 print(f"Requesting graceful shutdown for port {self.port}...")
-                response = requests.post(f"http://localhost:{self.port}/shutdown", timeout=5)
-                print(f"Shutdown request response: {response.status_code}")
+                requests.post(f"http://localhost:{self.port}/shutdown", timeout=3)
                 time.sleep(5)
-            except Exception as e:
-                print(f"Failed to request graceful shutdown: {e}")
-                pass
+            except Exception:
+                pass  # Graceful shutdown failed, proceed to force termination
 
-        # Force process termination
+        # Force process termination if still running
         if self.server_process and self.server_process.poll() is None:
             print(f"Terminating server process {self.server_process.pid}...")
-
-            def kill_group(sig, fallback):
+            try:
+                # Try to kill the process group first (this should kill the singularity container too)
+                pgid = os.getpgid(self.server_process.pid)
+                os.killpg(pgid, signal.SIGTERM)
+                self.server_process.wait(timeout=10)
+                print("Server process terminated")
+            except (ProcessLookupError, PermissionError, OSError, subprocess.TimeoutExpired):
+                # Force kill if graceful termination fails
                 try:
                     pgid = os.getpgid(self.server_process.pid)
-                    os.killpg(pgid, sig)
-                    print(f"Sent signal {sig} to process group {pgid}")
-                except (ProcessLookupError, PermissionError, OSError) as e:
-                    print(f"Could not signal process group: {e}")
-                    try:
-                        fallback()
-                    except (ProcessLookupError, PermissionError, OSError) as fallback_error:
-                        print(f"Fallback also failed: {fallback_error}")
-
-            kill_group(signal.SIGTERM, self.server_process.terminate)
-            try:
-                self.server_process.wait(timeout=15)
-                print("Server process terminated gracefully")
-            except subprocess.TimeoutExpired:
-                print("Server did not terminate gracefully, killing it...")
-                kill_group(signal.SIGKILL, self.server_process.kill)
-                try:
-                    self.server_process.wait(timeout=5)
-                    print("Server process killed")
-                except subprocess.TimeoutExpired:
-                    print(f"WARNING: Server process {self.server_process.pid} may still be running")
-                    # As a last resort, try to kill any remaining processes
-                    try:
-                        subprocess.run(["pkill", "-f", f"port {self.port}"], timeout=5, capture_output=True)
-                        print(f"Attempted to kill any remaining processes on port {self.port}")
-                    except Exception as cleanup_error:
-                        print(f"Final cleanup attempt failed: {cleanup_error}")
-                        pass
+                    os.killpg(pgid, signal.SIGKILL)
+                    self.server_process.wait(timeout=3)
+                    print("Server process force killed")
+                except Exception:
+                    print(f"WARNING: Could not terminate server process {self.server_process.pid}")
+                    if self.port:
+                        try:
+                            subprocess.run(["pkill", "-9", "-f", f"--port {self.port}"], timeout=5, capture_output=True)
+                            print(f"Attempted emergency kill of processes listening on port {self.port}")
+                        except Exception as e:
+                            print(f"Emergency kill failed: {e}")
 
             self.server_process = None
 
+        # Clean up temporary files
         if self.server_script_path and os.path.exists(self.server_script_path):
-            print(f"Removing temp server script: {self.server_script_path}")
             os.remove(self.server_script_path)
             self.server_script_path = None
 
