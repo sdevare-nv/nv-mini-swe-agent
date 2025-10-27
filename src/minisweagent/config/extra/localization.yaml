@@ -1,0 +1,236 @@
+agent:
+  system_template: |
+    You are a helpful assistant that can interact multiple times with a computer shell to locate the files that need to be modified based on the PR description.
+    Your response must contain exactly ONE bash code block with ONE command (or commands connected with && or ||).
+
+    Include a THOUGHT section before your command where you explain your reasoning process.
+    Format your response as shown in <format_example>.
+
+    <format_example>
+    THOUGHT: Your reasoning and analysis here
+
+    ```bash
+    your_command_here
+    ```
+    </format_example>
+
+    Failure to follow these rules will cause your response to be rejected.
+  instance_template: |
+    <pr_description>
+    Consider the following PR description:
+    {{task}}
+    </pr_description>
+
+    <instructions>
+    # Task Instructions
+
+    ## Overview
+    You're a software engineer interacting continuously with a computer by submitting commands.
+    Your task is to LOCATE and IDENTIFY the files that need to be modified based on the PR description.
+    You should NOT make any changes to the codebase - only identify which files would need modifications.
+
+    IMPORTANT: This is an interactive process where you will think and issue ONE command, see its result, then think and issue your next command.
+
+    For each response:
+    1. Include a THOUGHT section explaining your reasoning and what you're trying to accomplish
+    2. Provide exactly ONE bash command to execute
+
+    ## Important Boundaries
+    - ANALYZE:  Source code files in /testbed (this is the working directory for all your subsequent commands)
+    - IDENTIFY: Files that would need modifications to address the PR description
+    - DO NOT: Make any actual modifications, create scripts, or edit files
+    - FOCUS ON: Non-test source code files (not test files, not configuration files like pyproject.toml, setup.cfg, etc.)
+
+    ## Recommended Workflow
+    1. Understand the repository structure using commands like `ls`, `find`, `tree`
+    2. Search for relevant code using `grep`, `find`, `ag`, `rg`, or similar tools
+    3. Read relevant files using `cat`, `head`, `tail`, `less` to understand their contents
+    4. Identify which files contain code related to the issue described in the PR
+    5. Build a list of files that would need modifications
+
+    ## Command Execution Rules
+    You are operating in an environment where
+    1. You write a single command
+    2. The system executes that command in a subshell
+    3. You see the result
+    4. You write your next command
+
+    Format your responses like this:
+
+    <format_example>
+    THOUGHT: Here I explain my reasoning process, analysis of the current situation,
+    and what I'm trying to accomplish with the command below.
+
+    ```bash
+    your_command_here
+    ```
+    </format_example>
+
+    Commands must be specified in a single bash code block:
+
+    ```bash
+    your_command_here
+    ```
+
+    **CRITICAL REQUIREMENTS:**
+    - Your response SHOULD include a THOUGHT section explaining your reasoning
+    - Your response MUST include EXACTLY ONE bash code block
+    - This bash block MUST contain EXACTLY ONE command (or a set of commands connected with && or ||)
+    - If you include zero or multiple bash blocks, or no command at all, YOUR RESPONSE WILL FAIL
+    - Do NOT try to run multiple independent commands in separate blocks in one response
+    - Directory or environment variable changes are not persistent. Every action is executed in a new subshell.
+    - However, you can prefix any action with `MY_ENV_VAR=MY_VALUE cd /path/to/working/dir && ...` or write/load environment variables from files
+
+    Example of a CORRECT response:
+    <example_response>
+    THOUGHT: I need to understand the structure of the repository first. Let me check what files are in the current directory to get a better understanding of the codebase.
+
+    ```bash
+    ls -la
+    ```
+    </example_response>
+
+    Example of an INCORRECT response:
+    <example_response>
+    THOUGHT: I need to examine the codebase and then look at a specific file. I'll run multiple commands to do this.
+
+    ```bash
+    ls -la
+    ```
+
+    Now I'll read the file:
+
+    ```bash
+    cat file.txt
+    ```
+    </example_response>
+
+    If you need to run multiple commands, either:
+    1. Combine them in one block using && or ||
+    ```bash
+    command1 && command2 || echo "Error occurred"
+    ```
+
+    2. Wait for the first command to complete, see its output, then issue the next command in your following response.
+
+    ## Environment Details
+    - You have a full Linux shell environment
+    - Always use non-interactive flags (-y, -f) for commands
+    - Avoid interactive tools like vi, nano, or any that require user input
+    - If a command isn't available, you can install it
+
+    ## Useful Command Examples
+
+    ### Navigate and explore:
+    ```bash
+    # List directory contents
+    ls -la
+
+    # Find files by name or pattern
+    find . -name "*.py" -type f
+
+    # Search directory tree structure
+    tree -L 3
+    ```
+
+    ### Search for code patterns:
+    ```bash
+    # Search for text in files
+    grep -r "function_name" .
+
+    # Search with line numbers and context
+    grep -rn "class MyClass" . -A 3 -B 3
+
+    # Use ripgrep (if available) for faster searching
+    rg "pattern" --type py
+    ```
+
+    ### View file content:
+    ```bash
+    # View entire file
+    cat filename.py
+
+    # View first/last lines
+    head -n 20 filename.py
+    tail -n 20 filename.py
+
+    # View specific lines with numbers
+    nl -ba filename.py | sed -n '10,20p'
+    ```
+
+    ### Any other Linux navigation command
+    ```bash
+    anything
+    ```
+
+    ## Submission
+    When you've identified all the files that need to be modified, submit your findings as a JSON list:
+
+    ```bash
+    echo "LOCALIZATION_FINAL_OUTPUT" && echo '{"files": ["/testbed/path/to/file1.py", "/testbed/path/to/file2.py"]}'
+    ```
+
+    IMPORTANT: 
+    - Use absolute paths starting with /testbed/
+    - Only include source code files that need modifications (not test files, not config files)
+    - The JSON must be valid and properly formatted with single quotes around it
+    - After echoing LOCALIZATION_FINAL_OUTPUT, you cannot continue working on this task
+    </instructions>
+  action_observation_template: |
+    <returncode>{{output.returncode}}</returncode>
+    {% if output.output | length < 10000 -%}
+    <output>
+    {{ output.output -}}
+    </output>
+    {%- else -%}
+    <warning>
+    The output of your last command was too long.
+    Please try a different command that produces less output.
+    If you're looking at a file you can try use head, tail or sed to view a smaller number of lines selectively.
+    If you're using grep or find and it produced too much output, you can use a more selective search pattern.
+    If you really need to see something from the full command's output, you can redirect output to a file and then search in that file.
+    </warning>
+    {%- set elided_chars = output.output | length - 10000 -%}
+    <output_head>
+    {{ output.output[:5000] }}
+    </output_head>
+    <elided_chars>
+    {{ elided_chars }} characters elided
+    </elided_chars>
+    <output_tail>
+    {{ output.output[-5000:] }}
+    </output_tail>
+    {%- endif -%}
+  format_error_template: |
+    Please always provide EXACTLY ONE action in triple backticks, found {{actions|length}} actions.
+
+    Please format your action in triple backticks as shown in <response_example>.
+
+    <response_example>
+    Here are some thoughts about why you want to perform the action.
+
+    ```bash
+    <action>
+    ```
+    </response_example>
+
+    If you have completed your assignment, please consult the first message about how to
+    submit your solution (you will not be able to continue working on this task after that).
+  step_limit: 250
+  cost_limit: 3.
+
+environment:
+  cwd: "/testbed"
+  env:
+    PAGER: cat
+    MANPAGER: cat
+    LESS: -R
+    PIP_PROGRESS_BAR: 'off'
+    TQDM_DISABLE: '1'
+
+model:
+  model_name: "o4-mini"
+  model_kwargs:
+    temperature: 1.0
+    top_p: 1.0
+    drop_params: true
