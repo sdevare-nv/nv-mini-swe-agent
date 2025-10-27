@@ -334,18 +334,8 @@ def create_typer_options_from_config(cfg_model: type[RunnerConfig], overrides: d
     
     return options
 
-
 def make_runner_command(runner_cls: type[SWEGymRunner], help_text: str, **default_overrides):
-    """Factory to create a complete typer command for a runner class.
-    
-    Args:
-        runner_cls: The runner class to instantiate
-        help_text: Help text for the command
-        **default_overrides: Any parameter defaults to override (e.g., config=Path(...), step_limit=100)
-    
-    Returns:
-        Tuple of (app, main) where app is the typer app and main is the command function
-    """
+    """Factory to create a complete typer command for a runner class."""
     app = typer.Typer(rich_markup_mode="rich", add_completion=False)
     options = create_typer_options_from_config(RunnerConfig, default_overrides)
 
@@ -402,5 +392,5 @@ def make_runner_command(runner_cls: type[SWEGymRunner], help_text: str, **defaul
         )
         runner_cls().run(cfg)
 
-    return app, main
+    return app
 

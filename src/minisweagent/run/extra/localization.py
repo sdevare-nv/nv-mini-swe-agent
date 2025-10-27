@@ -73,7 +73,7 @@ class LocalizationRunner(SWEGymRunner):
         return report
 
 
-app, main = make_runner_command(
+app = make_runner_command(
     LocalizationRunner,
     _HELP_TEXT,
     config=builtin_config_dir / "extra" / "localization.yaml",

@@ -83,7 +83,7 @@ class TestRunner(SWEGymRunner):
         }
 
 
-app, main = make_runner_command(
+app = make_runner_command(
     TestRunner,
     _HELP_TEXT,
     config=builtin_config_dir / "extra" / "swebench.yaml",
