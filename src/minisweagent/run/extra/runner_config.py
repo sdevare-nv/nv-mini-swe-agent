@@ -7,29 +7,6 @@ from minisweagent.config import builtin_config_dir
 from minisweagent.environments import DockerEnvironment, SingularityEnvironment
 
 
-class ProcessInstanceConfig(BaseModel):
-    """Configuration for processing a single instance."""
-
-    instance: dict[str, Any]
-    output_dir: Path
-    model_name: str | None
-    config_path: str | Path
-    progress_manager: Any
-    convert_to_sif: bool
-    api_key: str | None
-    base_url: str | None
-    env_cls: type[SingularityEnvironment | DockerEnvironment]
-    responses_create_params: dict[str, Any]
-    cache_dir_template: str | None
-    run_id: str
-    subset: str
-    run_golden: bool
-    step_timeout: int
-    eval_timeout: int
-    step_limit: int
-    collapse_limit: int
-
-
 class RunnerConfig(BaseModel):
     subset: str = Field(default="lite", description="SWEGym subset to use or path to a dataset")
     split: str = Field(default="dev", description="Dataset split")
@@ -63,4 +40,22 @@ class RunnerConfig(BaseModel):
     collapse_limit: int = Field(
         default=0, description="Terminate agent if it generates the same output this many times (0 to disable)"
     )
+    testbed_path: str = Field(default="/testbed", description="Path to the testbed directory")
+
+
+class ProcessInstanceConfig(RunnerConfig):
+    instance: dict[str, Any]
+    output_dir: Path
+    progress_manager: Any
+    env_cls: type[SingularityEnvironment | DockerEnvironment]
+    responses_create_params: dict[str, Any]
+    run_id: str
+
+    @property
+    def model_name(self) -> str | None:
+        return self.model
+
+    @property
+    def config_path(self) -> str | Path:
+        return self.config
 

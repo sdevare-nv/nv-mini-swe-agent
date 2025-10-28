@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-
-"""Run mini-SWE-agent on SWE-GYM instances for file localization evaluation."""
-# Read this first: https://mini-swe-agent.com/latest/usage/swebench/  (usage docs)
-
 import json
 from pathlib import Path
 
@@ -11,6 +6,7 @@ from swegym.harness.constants import SWEbenchInstance
 from minisweagent.config import builtin_config_dir
 from minisweagent.environments import DockerEnvironment, SingularityEnvironment
 from minisweagent.run.extra.base_runner import SWEGymRunner, make_runner_command
+from minisweagent.run.extra.runner_config import ProcessInstanceConfig
 from minisweagent.run.extra.utils.parsing import get_changed_files_from_diff
 
 _HELP_TEXT = """Run mini-SWE-agent on SWEGym instances for file localization evaluation.
@@ -26,23 +22,21 @@ class LocalizationRunner(SWEGymRunner):
 
     def run_eval(
         self,
+        cfg: ProcessInstanceConfig,
         trajectory_data: dict,
-        instance: SWEbenchInstance | dict,
         env: SingularityEnvironment | DockerEnvironment,
         model_patch: str,
         instance_dir: Path,
-        run_id: str,
-        is_golden: bool = False,
     ) -> dict:
         """Evaluate by computing overlap between predicted and ground truth files."""
-        overlap_score = 0
+        instance = cfg.instance
         instance_id = instance["instance_id"]
         gold_patch = instance["patch"]
         gt_files = get_changed_files_from_diff(gold_patch)
 
         try:
             predicted_files = json.loads(trajectory_data["messages"][-1]["content"])["files"]
-            predicted_files = [file.replace("/testbed/", "") for file in predicted_files]
+            predicted_files = [file.replace(f"{cfg.testbed_path}/", "") for file in predicted_files]
         except Exception as e:
             print(f"[EVAL]{instance_id} Error parsing predicted files: {e}")
             predicted_files = []
@@ -67,7 +61,7 @@ class LocalizationRunner(SWEGymRunner):
             "gt_files": gt_files,
             "predicted_files": predicted_files,
         }
-        with open(instance_dir / f"report_{run_id}.json", "w") as f:
+        with open(instance_dir / f"report_{cfg.run_id}.json", "w") as f:
             json.dump(report, f)
 
         return report

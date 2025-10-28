@@ -36,7 +36,7 @@ agent:
     2. Provide exactly ONE bash command to execute
 
     ## Important Boundaries
-    - ANALYZE:  Source code files in /testbed (this is the working directory for all your subsequent commands)
+    - ANALYZE:  Source code files in {{testbed_path}} (this is the working directory for all your subsequent commands)
     - IDENTIFY: Files that would need modifications to address the PR description
     - DO NOT: Make any actual modifications, create scripts, or edit files
     - FOCUS ON: Non-test source code files (not test files, not configuration files like pyproject.toml, setup.cfg, etc.)
@@ -167,11 +167,11 @@ agent:
     When you've identified all the files that need to be modified, submit your findings as a JSON list:
 
     ```bash
-    echo "LOCALIZATION_FINAL_OUTPUT" && echo '{"files": ["/testbed/path/to/file1.py", "/testbed/path/to/file2.py"]}'
+    echo "LOCALIZATION_FINAL_OUTPUT" && echo '{"files": ["{{testbed_path}}/path/to/file1.py", "{{testbed_path}}/path/to/file2.py"]}'
     ```
 
     IMPORTANT: 
-    - Use absolute paths starting with /testbed/
+    - Use absolute paths starting with {{testbed_path}}/
     - Only include source code files that need modifications (not test files, not config files)
     - The JSON must be valid and properly formatted with single quotes around it
     - After echoing LOCALIZATION_FINAL_OUTPUT, you cannot continue working on this task
@@ -220,7 +220,7 @@ agent:
   cost_limit: 3.
 
 environment:
-  cwd: "/testbed"
+  cwd: "{{testbed_path}}"
   env:
     PAGER: cat
     MANPAGER: cat

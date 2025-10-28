@@ -21,13 +21,24 @@ agent:
     {{task}}
     </pr_description>
 
+    <oracle_file_information>
+    # Files That Need Modification
+
+    You are provided with oracle information about which files need to be modified to solve this issue.
+    You MUST focus your changes on the following files:
+
+    {{oracle_files}}
+
+    IMPORTANT: You should ONLY modify the files listed above. Do not modify any other files.
+    </oracle_file_information>
+
     <instructions>
     # Task Instructions
 
     ## Overview
     You're a software engineer interacting continuously with a computer by submitting commands.
-    You'll be helping implement necessary changes to meet requirements in the PR description.
-    Your task is specifically to make changes to non-test files in the current directory in order to fix the issue described in the PR description in a way that is general and consistent with the codebase.
+    You have been given oracle information about which specific files need modification to solve the issue.
+    Your task is to make changes ONLY to the specified files to fix the issue described in the PR description.
 
     IMPORTANT: This is an interactive process where you will think and issue ONE command, see its result, then think and issue your next command.
 
@@ -36,15 +47,17 @@ agent:
     2. Provide exactly ONE bash command to execute
 
     ## Important Boundaries
-    - MODIFY: Regular source code files in {{testbed_path}} (this is the working directory for all your subsequent commands)
-    - DO NOT MODIFY: Tests, configuration files (pyproject.toml, setup.cfg, etc.)
+    - MODIFY: ONLY the files listed in the oracle_file_information section above
+    - DO NOT MODIFY: Any other source files, tests, or configuration files
+    - FOCUS: Understanding the issue and implementing a fix in the specified files
 
     ## Recommended Workflow
-    1. Analyze the codebase by finding and reading relevant files
-    2. Create a script to reproduce the issue
-    3. Edit the source code to resolve the issue
-    4. Verify your fix works by running your script again
-    5. Test edge cases to ensure your fix is robust
+    1. Read and understand the specified files that need modification
+    2. Analyze the issue described in the PR description
+    3. Create a script to reproduce the issue (optional but recommended)
+    4. Edit ONLY the specified source code files to resolve the issue
+    5. Verify your fix works by running tests or your reproduction script
+    6. Ensure your changes are minimal and targeted
 
     ## Command Execution Rules
     You are operating in an environment where
@@ -117,6 +130,7 @@ agent:
 
     ## Environment Details
     - You have a full Linux shell environment
+    - The working directory is {{testbed_path}} (the repository root)
     - Always use non-interactive flags (-y, -f) for commands
     - Avoid interactive tools like vi, nano, or any that require user input
     - If a command isn't available, you can install it
@@ -168,6 +182,8 @@ agent:
 
     This command will submit your work.
     You cannot continue working (reading, editing, testing) in any way on this task after submitting.
+
+    REMINDER: Only modify the files specified in the oracle_file_information section. Do not modify any other files.
     </instructions>
   action_observation_template: |
     <returncode>{{output.returncode}}</returncode>
@@ -227,3 +243,4 @@ model:
     temperature: 1.0
     top_p: 1.0
     drop_params: true
+

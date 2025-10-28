@@ -14,6 +14,7 @@ from swegym.harness.test_spec import make_test_spec
 from minisweagent.config import builtin_config_dir
 from minisweagent.environments import DockerEnvironment, SingularityEnvironment
 from minisweagent.run.extra.base_runner import SWEGymRunner, make_runner_command
+from minisweagent.run.extra.runner_config import ProcessInstanceConfig
 
 _HELP_TEXT = """Run mini-SWE-agent on SWEGym instances for full test evaluation.
 
@@ -28,30 +29,29 @@ class TestRunner(SWEGymRunner):
 
     def run_eval(
         self,
+        cfg: ProcessInstanceConfig,
         trajectory_data: dict,
-        instance: SWEbenchInstance | dict,
         env: SingularityEnvironment | DockerEnvironment,
         model_patch: str,
         instance_dir: Path,
-        run_id: str,
-        is_golden: bool = False,
     ) -> dict:
         """Evaluate by running actual tests."""
+        instance = cfg.instance
         test_spec = make_test_spec(instance)
         pred = {"instance_id": test_spec.instance_id, "model_patch": model_patch}
         instance_id = test_spec.instance_id
 
         instance_dir.mkdir(parents=True, exist_ok=True)
-        log_file = instance_dir / f"run_instance_{run_id}.log"
-        report_path = instance_dir / f"report_{run_id}.json"
-        patch_file = instance_dir / f"patch_{run_id}.diff"
+        log_file = instance_dir / f"run_instance_{cfg.run_id}.log"
+        report_path = instance_dir / f"report_{cfg.run_id}.json"
+        patch_file = instance_dir / f"patch_{cfg.run_id}.diff"
         patch_file.write_text(model_patch)
 
         logger = setup_logger(instance_id, log_file)
         logger.info(f"DEBUG test_spec {test_spec}")
         logger.info(f"DEBUG eval_script {test_spec.eval_script}")
 
-        if is_golden:
+        if cfg.run_golden:
             env.execute(command=f"cat > patch.diff <<'EOF'\n{model_patch}\n\nEOF")
             env.execute(command="git status --porcelain")
             env.execute(command="git apply --check patch.diff")
@@ -62,7 +62,7 @@ class TestRunner(SWEGymRunner):
 
         test_output, returncode = res["output"], res["returncode"]
         print(f"[EVAL]{instance_id} returncode: {returncode}")
-        test_output_path = instance_dir / f"test_output_{run_id}.txt"
+        test_output_path = instance_dir / f"test_output_{cfg.run_id}.txt"
         test_output_path.write_text(test_output)
         print(f"[EVAL]{instance_id} Test output written to {test_output_path}")
 

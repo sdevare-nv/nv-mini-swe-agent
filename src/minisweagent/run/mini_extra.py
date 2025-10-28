@@ -13,6 +13,7 @@ subcommands = [
     ("minisweagent.run.extra.swebench_single", ["swebench-single"], "Evaluate on SWE-bench (single instance)"),
     ("minisweagent.run.extra.swegym_runner", ["swegym"], "Evaluate on SWE-gym (batch mode)"),
     ("minisweagent.run.extra.localization", ["localization"], "Locate the files that need to be modified"),
+    ("minisweagent.run.extra.patch_generation", ["patch_generation"], "Generate patches for SWE-gym instances"),
 ]
 
 

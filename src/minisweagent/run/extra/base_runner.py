@@ -59,13 +59,11 @@ class SWEGymRunner(ABC):
     @abstractmethod
     def run_eval(
         self,
+        cfg: ProcessInstanceConfig,
         trajectory_data: dict,
-        instance: dict,
         env: SingularityEnvironment | DockerEnvironment,
         model_patch: str,
         instance_dir: Path,
-        run_id: str,
-        is_golden: bool = False,
     ) -> dict:
         """Run evaluation on the instance. Must be implemented by subclasses."""
         pass
@@ -107,13 +105,28 @@ class SWEGymRunner(ABC):
                 print(f"Instance slice: {before_filter} -> {after_slice} instances", flush=True)
         return instances
 
+    def create_agent(self, cfg: ProcessInstanceConfig, model, env, agent_config: dict) -> ProgressTrackingAgent:
+        """Create agent for the instance. Override in subclasses for custom agent creation."""
+        return ProgressTrackingAgent(
+            model,
+            env,
+            cfg.responses_create_params,
+            progress_manager=cfg.progress_manager,
+            instance_id=cfg.instance["instance_id"],
+            **agent_config,
+        )
+
     def process_instance(self, cfg: ProcessInstanceConfig) -> tuple[dict | None, dict | None]:
         """Process a single SWEGym instance."""
         instance_id = cfg.instance["instance_id"]
         instance_dir = cfg.output_dir / instance_id
 
         image_name = self.get_swegym_docker_image_name(cfg.instance, cfg.subset)
-        config = yaml.safe_load(get_config_path(cfg.config_path).read_text())
+        
+        # TODO: use a better way to replace the testbed_path in the config
+        config_text = get_config_path(cfg.config_path).read_text()
+        config_text = config_text.replace("{{testbed_path}}", cfg.testbed_path)
+        config = yaml.safe_load(config_text)
 
         model_kwargs = config.setdefault("model", {}).setdefault("model_kwargs", {})
 
@@ -157,14 +170,7 @@ class SWEGymRunner(ABC):
             agent_config = config.get("agent", {})
             agent_config["step_limit"] = cfg.step_limit
             agent_config["collapse_limit"] = cfg.collapse_limit
-            agent = ProgressTrackingAgent(
-                model,
-                env,
-                cfg.responses_create_params,
-                progress_manager=cfg.progress_manager,
-                instance_id=instance_id,
-                **agent_config,
-            )
+            agent = self.create_agent(cfg, model, env, agent_config)
 
             print(f"[EVAL]{instance_id} Running agent...", flush=True)
             if not cfg.run_golden:
@@ -184,13 +190,11 @@ class SWEGymRunner(ABC):
             )
 
             eval_report = self.run_eval(
+                cfg=cfg,
                 trajectory_data=data,
-                instance=cfg.instance,
                 env=env,
                 model_patch=result,
                 instance_dir=instance_dir,
-                run_id=cfg.run_id,
-                is_golden=cfg.run_golden,
             )
             print(f"[EVAL]{instance_id} Eval completed", flush=True)
 
@@ -278,24 +282,13 @@ class SWEGymRunner(ABC):
                 executor.submit(
                     self.process_instance,
                     ProcessInstanceConfig(
+                        **cfg.model_dump(exclude={"responses_create_params"}),
                         instance=instance,
                         output_dir=output_path,
-                        model_name=cfg.model,
-                        config_path=cfg.config,
                         progress_manager=progress_manager,
-                        convert_to_sif=cfg.convert_to_sif,
-                        api_key=cfg.api_key,
-                        base_url=cfg.base_url,
                         env_cls=env_cls,
                         responses_create_params=responses_create_params,
-                        cache_dir_template=cfg.cache_dir_template,
                         run_id=run_id,
-                        subset=cfg.subset,
-                        run_golden=cfg.run_golden,
-                        step_timeout=cfg.step_timeout,
-                        eval_timeout=cfg.eval_timeout,
-                        step_limit=cfg.step_limit,
-                        collapse_limit=cfg.collapse_limit,
                     ),
                 ): instance["instance_id"]
                 for instance in instances
@@ -364,8 +357,9 @@ def make_runner_command(runner_cls: type[SWEGymRunner], help_text: str, **defaul
         eval_timeout: int = options["eval_timeout"],
         step_limit: int = options["step_limit"],
         collapse_limit: int = options["collapse_limit"],
+        testbed_path: str = options["testbed_path"],
     ) -> None:
-        cfg = RunnerConfig(
+        runner_cfg = RunnerConfig(
             subset=subset,
             split=split,
             slice=slice,
@@ -389,8 +383,9 @@ def make_runner_command(runner_cls: type[SWEGymRunner], help_text: str, **defaul
             eval_timeout=eval_timeout,
             step_limit=step_limit,
             collapse_limit=collapse_limit,
+            testbed_path=testbed_path,
         )
-        runner_cls().run(cfg)
+        runner_cls().run(runner_cfg)
 
     return app
 
