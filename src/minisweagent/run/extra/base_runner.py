@@ -227,8 +227,8 @@ class SWEGymRunner(ABC):
         run_id = f"{int(time.time())}_{str(uuid.uuid4())}"
         env_cls = ENV_MAP[cfg.env]
         dataset_path = self.DATASET_MAPPING.get(cfg.subset, cfg.subset)
-
-        instances = [cfg.instance_dict] if cfg.instance_dict else list(load_dataset(dataset_path, split=cfg.split))
+        instance_dict = json.loads(cfg.instance_dict) if cfg.instance_dict else None
+        instances = [instance_dict] if instance_dict else list(load_dataset(dataset_path, split=cfg.split))
 
         if cfg.instance_id:
             instance_id = cfg.instance_id.lower()
@@ -356,7 +356,7 @@ def make_runner_command(runner_cls: type[SWEGymRunner], help_text: str, **defaul
         base_url: str | None = options["base_url"],
         env: str = options["env"],
         instance_id: str = options["instance_id"],
-        instance_dict: str = options["instance_dict"],
+        instance_dict: str | None = options["instance_dict"],
         responses_create_params: str = options["responses_create_params"],
         cache_dir_template: str | None = options["cache_dir_template"],
         run_golden: bool = options["run_golden"],

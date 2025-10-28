@@ -29,9 +29,6 @@ class ProcessInstanceConfig(BaseModel):
     step_limit: int
     collapse_limit: int
 
-    class Config:
-        arbitrary_types_allowed = True
-
 
 class RunnerConfig(BaseModel):
     subset: str = Field(default="lite", description="SWEGym subset to use or path to a dataset")
@@ -66,7 +63,4 @@ class RunnerConfig(BaseModel):
     collapse_limit: int = Field(
         default=0, description="Terminate agent if it generates the same output this many times (0 to disable)"
     )
-
-    class Config:
-        arbitrary_types_allowed = True
 
