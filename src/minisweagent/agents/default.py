@@ -118,7 +118,6 @@ class DefaultAgent:
     def run(self, task: str) -> tuple[str, str]:
         """Run step() until agent is finished. Return exit status & message"""
         self.messages = []
-        self.recent_outputs = deque()
         self.collapse_warnings = 0
         if (
             self.responses_create_params
