@@ -86,7 +86,7 @@ class DefaultAgent:
         self.responses: list[dict] = []
         self.model = model
         self.env = env
-        self.recent_outputs: deque[str] = deque()
+        self.recent_outputs: deque[str] = deque(maxlen=self.config.collapse_limit)
         self.collapse_warnings: int = 0
 
     def render_template(self, template: str, **kwargs) -> str:
@@ -101,9 +101,6 @@ class DefaultAgent:
         if self.config.collapse_limit <= 0:
             return
 
-        if self.recent_outputs.maxlen != self.config.collapse_limit:
-            self.recent_outputs = deque(self.recent_outputs, maxlen=self.config.collapse_limit)
-
         self.recent_outputs.append(content)
 
         if len(self.recent_outputs) == self.config.collapse_limit and len(set(self.recent_outputs)) == 1:
@@ -113,7 +110,6 @@ class DefaultAgent:
                 raise CollapseContinued(
                     f"Agent continued to generate the same output '{content}' after being warned. Terminating due to persistent collapse."
                 )
-            self.recent_outputs.clear()
             message = self.render_template(self.config.collapse_template, repeated_command=content)
             raise CollapseDetected(message)
         else:
@@ -122,7 +118,6 @@ class DefaultAgent:
     def run(self, task: str) -> tuple[str, str]:
         """Run step() until agent is finished. Return exit status & message"""
         self.messages = []
-        self.recent_outputs = deque()
         self.collapse_warnings = 0
         if (
             self.responses_create_params
