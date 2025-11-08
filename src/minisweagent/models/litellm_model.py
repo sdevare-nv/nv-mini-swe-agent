@@ -77,11 +77,6 @@ class LitellmModel:
     )
     def _query(self, messages: list[dict[str, str]], responses: list[dict[str, str]], **kwargs):
         try:
-            from nemo_gym.openai_utils import NeMoGymAsyncOpenAI
-            print(f"COULD IMPORT NEMO GYM", NeMoGymAsyncOpenAI)
-        except:
-            print(f"COULD NOT IMPORT NEMO GYM")
-        try:
             raw_cookie = (
                 self.response_headers.get(SET_COOKIE_ID)
                 if self.response_headers and SET_COOKIE_ID in self.response_headers
