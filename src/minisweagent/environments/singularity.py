@@ -164,6 +164,8 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
                 if self._install_cnt > self._max_install_cnt:
                     print(f"Failed to start the Singularity server after {self._max_install_cnt} retries.")
                     break
+                # Port conflict errors may manifest as: Error address already in use
+                self._find_available_port()
                 self._spin_up_server()
                 continue
 
