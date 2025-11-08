@@ -156,6 +156,10 @@ class DefaultAgent:
         }
 
         response = self.model.query(self.messages, self.responses, **kwargs)
+        if not response["content"]:
+            # If content is empty, we assume Gym model has raised out of context error.
+            raise LimitsExceeded()
+
         self.add_message("assistant", response["content"])
         self.responses.append(response["response_obj"])
         return response
