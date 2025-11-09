@@ -60,8 +60,11 @@ class LitellmModel:
         return processed_messages
 
     @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=5, max=15),
+        # Never stop
+        # stop=stop_after_attempt(3),
+        # Retry frequently
+        # wait=wait_exponential(multiplier=1, min=5, max=15),
+        wait=wait_exponential(multiplier=1, min=1, max=1),
         before_sleep=before_sleep_log(logger, logging.WARNING),
         retry=retry_if_not_exception_type(
             (
@@ -100,6 +103,9 @@ class LitellmModel:
             return response
         except litellm.exceptions.AuthenticationError as e:
             e.message += " You can permanently set your API key with `mini-extra config set KEY VALUE`."
+            raise e
+        except Exception as e:
+            print(f"Retrying after hit error in LitellmModel._query: {e}")
             raise e
 
     def query(self, messages: list[dict[str, str]], responses: list[dict[str, str]], **kwargs) -> dict:
