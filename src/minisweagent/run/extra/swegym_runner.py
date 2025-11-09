@@ -113,8 +113,8 @@ def run_eval(
         f.write(model_patch)
 
     logger = setup_logger(instance_id, log_file)
-    logger.info(f"DEBUG test_spec {test_spec}")
-    logger.info(f"DEBUG eval_script {test_spec.eval_script}")
+    # logger.info(f"DEBUG test_spec {test_spec}")
+    # logger.info(f"DEBUG eval_script {test_spec.eval_script}")
 
     if is_golden:
         res = env.execute(command=f"cat > patch.diff <<'EOF'\n{model_patch}\n\nEOF")
