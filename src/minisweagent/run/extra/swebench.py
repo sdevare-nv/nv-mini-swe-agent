@@ -128,14 +128,14 @@ def run_eval(
         f.write(model_patch)
 
     logger = setup_logger(instance_id, log_file)
-    logger.info(f"DEBUG test_spec {test_spec}")
-    logger.info(f"DEBUG eval_script {test_spec.eval_script}")
+    # logger.info(f"DEBUG test_spec {test_spec}")
+    # logger.info(f"DEBUG eval_script {test_spec.eval_script}")
     eval_script = test_spec.eval_script.replace("#!/bin/bash", "")
     res = env.execute(command=eval_script)
 
     test_output, returncode = res["output"], res["returncode"]
-    logger.info(f"DEBUG eval output: {test_output}")
-    logger.info(f"DEBUG returncode: {returncode}")
+    # logger.info(f"DEBUG eval output: {test_output}")
+    # logger.info(f"DEBUG returncode: {returncode}")
     test_output_path = log_dir / "test_output.txt"
     with open(test_output_path, "w") as f:
         f.write(test_output)
@@ -201,9 +201,9 @@ def process_instance(
             **config.get("agent", {}),
         )
         exit_status, result = agent.run(task)
-        print(f"DEBUG: Running eval for {instance_id}")
+        # print(f"DEBUG: Running eval for {instance_id}")
         run_eval(instance=instance, env=env, model_patch=result, instance_dir=instance_dir)
-        print(f"DEBUG: Eval completed for {instance_id}")
+        # print(f"DEBUG: Eval completed for {instance_id}")
 
     except Exception as e:
         if convert_to_sif:
