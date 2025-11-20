@@ -1,9 +1,12 @@
+import fcntl
 import glob
 import logging
 import os
 import random
 import shlex
 import signal
+import shutil
+import uuid
 import socket
 import subprocess
 import tempfile
@@ -81,6 +84,9 @@ class SingularityEnvironment:
         self._is_cleaned_up = False
         self._fallback_mode = False
         self.pwd = "testbed"
+        self._install_cnt = 0
+        self._max_install_cnt = 20
+        self.run_id = str(uuid.uuid4())
 
         assert self.config.cache_dir_template is not None, (
             "cache_dir_template cannot be None for Singularity environment"
@@ -88,6 +94,9 @@ class SingularityEnvironment:
 
         try:
             self._setup_sif()
+            self.uv_executable_path = self._get_or_download_uv()
+            self.uv_executable_path = self._copy_to_unique_dir()
+            self._setup_uv_cache()
             self._create_server_script()
             self._find_available_port()
             self._spin_up_server()
@@ -101,9 +110,78 @@ class SingularityEnvironment:
             print("Enabling fallback mode due to initialization failure.")
             self._fallback_mode = True
 
+    def _copy_to_unique_dir(self) -> str:
+        unique_dir = Path(__file__).parent / ".shared" / self.run_id
+        unique_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy(self.uv_executable_path, unique_dir)
+        return str(unique_dir / "uv")
+
+    def _get_or_download_uv(self) -> str:
+        shared_dir = Path(__file__).parent / ".shared"
+        shared_dir.mkdir(parents=True, exist_ok=True)
+        uv_bin_dir = shared_dir / "uv_bin"
+        uv_path = uv_bin_dir / "uv"
+        lock_file_path = shared_dir / "uv.lock"
+        
+        if uv_path.exists() and uv_path.stat().st_size > 0:
+            try:
+                result = subprocess.run([str(uv_path), "--version"], capture_output=True, timeout=5)
+                if result.returncode == 0:
+                    return str(uv_path)
+            except (subprocess.TimeoutExpired, OSError):
+                pass
+        
+        with open(lock_file_path, "w") as lock_file:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            
+            if uv_path.exists() and uv_path.stat().st_size > 0:
+                try:
+                    result = subprocess.run([str(uv_path), "--version"], capture_output=True, timeout=5)
+                    if result.returncode == 0:
+                        return str(uv_path)
+                    else:
+                        uv_path.unlink(missing_ok=True)
+                except (subprocess.TimeoutExpired, OSError):
+                    uv_path.unlink(missing_ok=True)
+            
+            uv_bin_dir.mkdir(parents=True, exist_ok=True)
+            
+            install_cmd = f"curl -LsSf https://astral.sh/uv/install.sh | sh"
+            try:
+                result = subprocess.run(
+                    install_cmd,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    env={**os.environ, "UV_INSTALL_DIR": str(uv_bin_dir)},
+                    timeout=600,
+                )
+                
+                if result.returncode != 0:
+                    msg = f"Failed to install uv: {result.stderr}"
+                    raise RuntimeError(msg)
+                
+                if not uv_path.exists():
+                    msg = f"uv installation succeeded but binary not found at {uv_path}"
+                    raise RuntimeError(msg)
+                
+                return str(uv_path)
+            except Exception:
+                uv_path.unlink(missing_ok=True)
+                raise
+
+    def _setup_uv_cache(self) -> None:
+        shared_dir = Path(__file__).parent / ".shared"
+        shared_dir.mkdir(parents=True, exist_ok=True)
+        self.uv_cache_dir = shared_dir / self.run_id / "uv_cache" 
+        self.uv_cache_dir.mkdir(parents=True, exist_ok=True)
+
     def _spin_up_server(self) -> None:
         print(f"Spinning up server on port {self.port}...")
         server_path_in_container = f"/tmp/{os.path.basename(self.server_script_path)}"
+        uv_in_container = "/tmp/uv"
+        uv_cache_in_container = "/tmp/uv_cache"
+        venv_path = "/tmp/fastapi_venv"
 
         cmd = [
             self.config.executable,
@@ -113,7 +191,7 @@ class SingularityEnvironment:
             "--no-mount",
             "home,tmp,bind-paths",
             "--bind",
-            f"{self.server_script_path}:{server_path_in_container}:ro",
+            f"{self.server_script_path}:{server_path_in_container}:ro,{self.uv_executable_path}:{uv_in_container}:ro,{self.uv_cache_dir}:{uv_cache_in_container}",
             "--pwd",
             self.pwd,
             *self.config.start_args,
@@ -124,18 +202,14 @@ class SingularityEnvironment:
         cmd.append(self.sif_path)
 
         pip_timeout = self.config.step_timeout + 60
-
-        # The installation directory
-        uv_install_dir = "/tmp/singularity_server/uv"
-        venv_path = "/tmp/singularity_server/.venv"
-
-        install_and_run_cmd = f"""echo '127.0.0.1 localhost' > /etc/hosts & mkdir -p {uv_install_dir} && cd /tmp/singularity_server &&
-curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="{uv_install_dir}" sh && source {uv_install_dir}/env &&
-uv venv {venv_path} --python 3.12 &&
-timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/python "fastapi[standard]==0.117.1" &&
+        
+        run_cmd = f"""echo '127.0.0.1 localhost' > /etc/hosts && \
+export UV_CACHE_DIR={uv_cache_in_container} && \
+{uv_in_container} venv {venv_path} --python 3.12 && \
+timeout {pip_timeout} {uv_in_container} pip install --python {venv_path}/bin/python "fastapi[standard]==0.117.1" && \
 {venv_path}/bin/python {server_path_in_container} --port {self.port}"""
 
-        cmd.extend(["/bin/bash", "-c", install_and_run_cmd])
+        cmd.extend(["/bin/bash", "-c", run_cmd])
 
         self.server_process = subprocess.Popen(
             cmd,
@@ -151,15 +225,19 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
 
     def _health_check(self):
         """Waits for the container's API server to become responsive."""
-        max_wait = max(self.config.step_timeout, 300)
+        max_wait = self.config.step_timeout
         start_time = time.time()
 
         while time.time() - start_time < max_wait:
             if self.server_process and self.server_process.poll() is not None:
                 print(f"Container server failed to start: {self.server_process.stdout.read()}")
+                time.sleep(random.uniform(1, 3))
+                self._install_cnt += 1
+                if self._install_cnt > self._max_install_cnt:
+                    print(f"Failed to start the Singularity server after {self._max_install_cnt} retries.")
+                    break
                 self._find_available_port()
                 self._spin_up_server()
-                time.sleep(random.uniform(1, 3))
                 continue
             try:
                 response = requests.get(f"http://localhost:{self.port}/health", timeout=10)
@@ -172,7 +250,7 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
                     response.raise_for_status()
                     return  # Server is up
             except requests.exceptions.RequestException:
-                time.sleep(random.uniform(1, 3))
+                time.sleep(1)
 
         elapsed = time.time() - start_time
         print(f"Failed to start the Singularity server within {elapsed:.1f}s (timeout: {max_wait}s).")
@@ -389,6 +467,9 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
             self.server_script_path = None
 
         self._is_cleaned_up = True
+
+        unique_dir = Path(__file__).parent / ".shared" / self.run_id
+        shutil.rmtree(unique_dir)
         print("Cleanup complete.")
 
     def __enter__(self):
