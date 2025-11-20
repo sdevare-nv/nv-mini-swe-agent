@@ -81,8 +81,6 @@ class SingularityEnvironment:
         self._is_cleaned_up = False
         self._fallback_mode = False
         self.pwd = "testbed"
-        self._install_cnt = 0
-        self._max_install_cnt = 3
 
         assert self.config.cache_dir_template is not None, (
             "cache_dir_template cannot be None for Singularity environment"
@@ -153,20 +151,16 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
 
     def _health_check(self):
         """Waits for the container's API server to become responsive."""
-        max_wait = self.config.step_timeout
+        max_wait = max(self.config.step_timeout, 300)
         start_time = time.time()
 
         while time.time() - start_time < max_wait:
             if self.server_process and self.server_process.poll() is not None:
                 print(f"Container server failed to start: {self.server_process.stdout.read()}")
-                time.sleep(random.uniform(1, 3))
-                self._install_cnt += 1
-                if self._install_cnt > self._max_install_cnt:
-                    print(f"Failed to start the Singularity server after {self._max_install_cnt} retries.")
-                    break
+                self._find_available_port()
                 self._spin_up_server()
+                time.sleep(random.uniform(1, 3))
                 continue
-
             try:
                 response = requests.get(f"http://localhost:{self.port}/health", timeout=10)
                 if response.status_code == 200:
@@ -178,7 +172,7 @@ timeout {pip_timeout} uv pip install --no-cache-dir --python {venv_path}/bin/pyt
                     response.raise_for_status()
                     return  # Server is up
             except requests.exceptions.RequestException:
-                time.sleep(1)
+                time.sleep(random.uniform(1, 3))
 
         elapsed = time.time() - start_time
         print(f"Failed to start the Singularity server within {elapsed:.1f}s (timeout: {max_wait}s).")
