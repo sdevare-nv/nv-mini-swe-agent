@@ -64,7 +64,7 @@ class DockerEnvironment:
             cmd,
             capture_output=True,
             text=True,
-            timeout=120,  # docker pull might take a while
+            timeout=600,  # docker pull might take a while
             check=True,
         )
         print(f"Started container {container_name} with ID {result.stdout.strip()}")

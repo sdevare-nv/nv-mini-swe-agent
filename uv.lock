@@ -1110,7 +1110,7 @@ requires-dist = [
     { name = "datasets", marker = "extra == 'dev'" },
     { name = "hf-transfer", specifier = ">=0.1.9" },
     { name = "jinja2" },
-    { name = "litellm" },
+    { name = "litellm", specifier = "==1.74.15.post1" },
     { name = "mike", marker = "extra == 'dev'" },
     { name = "mini-swe-agent", extras = ["dev"], marker = "extra == 'full'" },
     { name = "mkdocs-glightbox", marker = "extra == 'dev'" },
