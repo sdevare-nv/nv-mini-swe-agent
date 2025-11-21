@@ -96,7 +96,7 @@ class SingularityEnvironment:
             self._setup_sif()
             self.uv_executable_path = self._get_or_download_uv()
             self.uv_executable_path = self._copy_to_unique_dir()
-            self._setup_uv_cache()
+            self._setup_shared_uv_cache()
             self._create_server_script()
             self._find_available_port()
             self._spin_up_server()
@@ -170,17 +170,18 @@ class SingularityEnvironment:
                 uv_path.unlink(missing_ok=True)
                 raise
 
-    def _setup_uv_cache(self) -> None:
+    def _setup_shared_uv_cache(self) -> None:
+        """Sets up a shared UV cache directory for all container instances."""
         shared_dir = Path(__file__).parent / ".shared"
         shared_dir.mkdir(parents=True, exist_ok=True)
-        self.uv_cache_dir = shared_dir / self.run_id / "uv_cache" 
+        self.uv_cache_dir = shared_dir / "uv_cache"
         self.uv_cache_dir.mkdir(parents=True, exist_ok=True)
 
     def _spin_up_server(self) -> None:
         print(f"Spinning up server on port {self.port}...")
         server_path_in_container = f"/tmp/{os.path.basename(self.server_script_path)}"
         uv_in_container = "/tmp/uv"
-        uv_cache_in_container = "/tmp/uv_cache"
+        uv_cache_in_container = "/uv_cache"
         venv_path = "/tmp/fastapi_venv"
 
         cmd = [
@@ -205,7 +206,7 @@ class SingularityEnvironment:
         
         run_cmd = f"""echo '127.0.0.1 localhost' > /etc/hosts && \
 export UV_CACHE_DIR={uv_cache_in_container} && \
-{uv_in_container} venv {venv_path} --python 3.12 && \
+{uv_in_container} venv {venv_path} && \
 timeout {pip_timeout} {uv_in_container} pip install --python {venv_path}/bin/python "fastapi[standard]==0.117.1" && \
 {venv_path}/bin/python {server_path_in_container} --port {self.port}"""
 
@@ -469,7 +470,7 @@ timeout {pip_timeout} {uv_in_container} pip install --python {venv_path}/bin/pyt
         self._is_cleaned_up = True
 
         unique_dir = Path(__file__).parent / ".shared" / self.run_id
-        shutil.rmtree(unique_dir)
+        shutil.rmtree(unique_dir, ignore_errors=True)
         print("Cleanup complete.")
 
     def __enter__(self):
