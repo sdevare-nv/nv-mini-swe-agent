@@ -11,6 +11,7 @@ import threading
 import time
 import traceback
 from pathlib import Path
+from typing import cast
 
 import typer
 import yaml
@@ -19,10 +20,14 @@ from rich.live import Live
 
 from minisweagent.agents.default import DefaultAgent
 from minisweagent.config import builtin_config_dir, get_config_path
-from minisweagent.environments.docker import DockerEnvironment
+from minisweagent.environments import ENV_MAP, DockerEnvironment, SingularityEnvironment
 from minisweagent.models import get_model
 from minisweagent.run.extra.utils.batch_progress import RunBatchProgressManager
 from minisweagent.run.utils.save import save_traj
+from swegym.harness.test_spec import make_test_spec, TestSpec
+from swegym.harness.constants import SWEbenchInstance, RUN_EVALUATION_LOG_DIR
+from swegym.harness.docker_build import setup_logger
+from swegym.harness.grading import get_eval_report
 
 _HELP_TEXT = """Run mini-SWE-agent on SWEBench instances.
 
@@ -71,6 +76,7 @@ def get_swebench_docker_image_name(instance: dict) -> str:
         iid = instance["instance_id"]
         id_docker_compatible = iid.replace("__", "_1776_")
         image_name = f"swebench/sweb.eval.x86_64.{id_docker_compatible}:latest".lower()
+        # image_name = f"ghcr.io/epoch-research/swe-bench.eval.x86_64.{iid}:latest"
     return image_name
 
 
@@ -99,12 +105,64 @@ def remove_from_preds_file(output_path: Path, instance_id: str):
             output_path.write_text(json.dumps(output_data, indent=2))
 
 
+def run_eval(
+    instance: SWEbenchInstance,
+    env: SingularityEnvironment | DockerEnvironment,
+    model_patch: str,
+    instance_dir: str,
+):
+    # TODO: sugam - run evaluation for the sample
+    instances = [cast(SWEbenchInstance, instance)]
+    test_spec = list(map(make_test_spec, instances))[0]
+
+    pred = {"instance_id": test_spec.instance_id, "model_patch": model_patch}
+
+    instance_id = test_spec.instance_id
+
+    log_dir = instance_dir
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "run_instance.log"
+    report_path = log_dir / "report.json"
+    patch_file = log_dir / "patch.diff"
+    with open(patch_file, "w") as f:
+        f.write(model_patch)
+
+    logger = setup_logger(instance_id, log_file)
+    logger.info(f"DEBUG test_spec {test_spec}")
+    logger.info(f"DEBUG eval_script {test_spec.eval_script}")
+    eval_script = test_spec.eval_script.replace("#!/bin/bash", "")
+    res = env.execute(command=eval_script)
+
+    test_output, returncode = res["output"], res["returncode"]
+    logger.info(f"DEBUG eval output: {test_output}")
+    logger.info(f"DEBUG returncode: {returncode}")
+    test_output_path = log_dir / "test_output.txt"
+    with open(test_output_path, "w") as f:
+        f.write(test_output)
+        logger.info(f"Test output for {instance_id} written to {test_output_path}")
+
+    report = get_eval_report(
+        test_spec=test_spec,
+        prediction=pred,
+        log_path=test_output_path,
+        include_tests_status=True,
+    )
+    logger.info(f"report: {report}\nResult for {instance_id}: resolved: {report[instance_id]['resolved']}")
+
+    with open(report_path, "w") as f:
+        f.write(json.dumps(report, indent=4))
+
+
 def process_instance(
     instance: dict,
     output_dir: Path,
     model_name: str | None,
     config_path: str | Path,
     progress_manager: RunBatchProgressManager,
+    convert_to_sif: bool,
+    api_key: str,
+    base_url: str,
+    env_cls: SingularityEnvironment | DockerEnvironment,
 ) -> None:
     """Process a single SWEBench instance."""
     instance_id = instance["instance_id"]
@@ -115,6 +173,12 @@ def process_instance(
 
     image_name = get_swebench_docker_image_name(instance)
     config = yaml.safe_load(get_config_path(config_path).read_text())
+    model_kwargs = config.setdefault("model", {}).setdefault("model_kwargs", {})
+    if api_key:
+        model_kwargs["api_key"] = api_key
+    if base_url:
+        model_kwargs["base_url"] = base_url
+
     model = get_model(model_name, config=config.get("model", {}))
     task = instance["problem_statement"]
 
@@ -125,7 +189,10 @@ def process_instance(
     extra_info = None
 
     try:
-        env = DockerEnvironment(**(config.get("environment", {}) | {"image": image_name}))
+        env = env_cls(**(config.get("environment", {}) | {"image": image_name}))
+        if convert_to_sif:
+            progress_manager.on_instance_end(instance_id, "Image Converted to SIF")
+            return
         agent = ProgressTrackingAgent(
             model,
             env,
@@ -134,11 +201,19 @@ def process_instance(
             **config.get("agent", {}),
         )
         exit_status, result = agent.run(task)
+        print(f"DEBUG: Running eval for {instance_id}")
+        run_eval(instance=instance, env=env, model_patch=result, instance_dir=instance_dir)
+        print(f"DEBUG: Eval completed for {instance_id}")
+
     except Exception as e:
+        if convert_to_sif:
+            progress_manager.on_instance_end(instance_id, "Error pulling image")
         print(f"Error processing instance {instance_id}: {e}\n{traceback.format_exc()}")
         exit_status, result = type(e).__name__, str(e)
         extra_info = {"traceback": traceback.format_exc()}
     finally:
+        if convert_to_sif:
+            return
         save_traj(
             agent,
             instance_dir / f"{instance_id}.traj.json",
@@ -185,7 +260,12 @@ def main(
     config: Path = typer.Option(
         builtin_config_dir / "extra" / "swebench.yaml", "-c", "--config", help="Path to a config file"
     ),
+    convert_to_sif: bool = typer.Option(False, "--convert_to_sif", help="Convert docker images to SIF"),
+    api_key: str | None = typer.Option(None, "--api_key", help="API Key for model endpoint"),
+    base_url: str | None = typer.Option(None, "--base_url", help="Base URL for model endpoint"),
+    env: str = typer.Option("singularity", "--env", help="Environment to use"),
 ) -> None:
+    env_cls = ENV_MAP[env]
     dataset_path = DATASET_MAPPING.get(subset, subset)
     print(f"Loading dataset {dataset_path}, split {split}...")
     instances = list(load_dataset(dataset_path, split=split))
@@ -218,9 +298,18 @@ def main(
     with Live(progress_manager.render_group, refresh_per_second=4):
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {
-                executor.submit(process_instance, instance, output_path, model, config, progress_manager): instance[
-                    "instance_id"
-                ]
+                executor.submit(
+                    process_instance,
+                    instance,
+                    output_path,
+                    model,
+                    config,
+                    progress_manager,
+                    convert_to_sif,
+                    api_key,
+                    base_url,
+                    env_cls,
+                ): instance["instance_id"]
                 for instance in instances
             }
             try:

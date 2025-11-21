@@ -132,6 +132,7 @@ agent:
   cost_limit: 0.
 
 environment:
+  type: enroot
   image: "python:3.11"
   cwd: "/testbed"
   env:

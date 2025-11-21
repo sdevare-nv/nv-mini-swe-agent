@@ -4,8 +4,10 @@ import os
 import platform
 import re
 import subprocess
+from collections import deque
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
+from typing import Any
 
 from jinja2 import Template
 
@@ -27,8 +29,13 @@ class AgentConfig:
     )
     format_error_template: str = "Please always provide EXACTLY ONE action in triple backticks."
     action_observation_template: str = "Observation: {{output}}"
+    collapse_template: str = (
+        "The last {{collapse_limit}} commands you generated were identical: '{{repeated_command}}'. "
+        "This suggests you may be stuck in a loop. Please try a different approach or command."
+    )
     step_limit: int = 0
     cost_limit: float = 3.0
+    collapse_limit: int = 0
 
 
 class NonTerminatingException(Exception):
@@ -55,12 +62,32 @@ class LimitsExceeded(TerminatingException):
     """Raised when the agent has reached its cost or step limit."""
 
 
+class CollapseDetected(NonTerminatingException):
+    """Raised when the agent generates the same output repeatedly."""
+
+
+class CollapseContinued(TerminatingException):
+    """Raised when the agent continues to collapse after being warned."""
+
+
 class DefaultAgent:
-    def __init__(self, model: Model, env: Environment, *, config_class: Callable = AgentConfig, **kwargs):
+    def __init__(
+        self,
+        model: Model,
+        env: Environment,
+        responses_create_params: dict[str, Any] | None,
+        *,
+        config_class: Callable = AgentConfig,
+        **kwargs,
+    ):
         self.config = config_class(**kwargs)
+        self.responses_create_params = responses_create_params
         self.messages: list[dict] = []
+        self.responses: list[dict] = []
         self.model = model
         self.env = env
+        self.recent_outputs: deque[str] = deque(maxlen=self.config.collapse_limit)
+        self.collapse_warnings: int = 0
 
     def render_template(self, template: str, **kwargs) -> str:
         cs = asdict(self.config) | asdict(self.env.config) | asdict(self.model.config) | platform.uname()._asdict()
@@ -69,11 +96,40 @@ class DefaultAgent:
     def add_message(self, role: str, content: str):
         self.messages.append({"role": role, "content": content})
 
+    def check_collapse(self, content: str):
+        """Check if the model has generated the same output repeatedly."""
+        if self.config.collapse_limit <= 0:
+            return
+
+        self.recent_outputs.append(content)
+
+        if len(self.recent_outputs) == self.config.collapse_limit and len(set(self.recent_outputs)) == 1:
+            self.collapse_warnings += 1
+            print(f"DEBUG collapse detected: Command {content} repeated {self.collapse_warnings} times")
+            if self.collapse_warnings >= 2:
+                raise CollapseContinued(
+                    f"Agent continued to generate the same output '{content}' after being warned. Terminating due to persistent collapse."
+                )
+            message = self.render_template(self.config.collapse_template, repeated_command=content)
+            raise CollapseDetected(message)
+        else:
+            self.collapse_warnings = 0
+
     def run(self, task: str) -> tuple[str, str]:
         """Run step() until agent is finished. Return exit status & message"""
         self.messages = []
-        self.add_message("system", self.render_template(self.config.system_template))
-        self.add_message("user", self.render_template(self.config.instance_template, task=task))
+        self.collapse_warnings = 0
+        if (
+            self.responses_create_params
+            and "input" in self.responses_create_params
+            and len(self.responses_create_params["input"]) > 0
+        ):
+            messages = self.responses_create_params["input"]
+            for message in messages:
+                self.add_message(message["role"], message["content"])
+        else:
+            self.add_message("system", self.render_template(self.config.system_template))
+            self.add_message("user", self.render_template(self.config.instance_template, task=task))
         while True:
             try:
                 self.step()
@@ -91,8 +147,20 @@ class DefaultAgent:
         """Query the model and return the response."""
         if 0 < self.config.step_limit <= self.model.n_calls or 0 < self.config.cost_limit <= self.model.cost:
             raise LimitsExceeded()
-        response = self.model.query(self.messages)
+
+        # Support temperature and top_p
+        kwargs = {
+            key: self.responses_create_params[key]
+            for key in ["temperature", "top_p"]
+            if key in self.responses_create_params
+        }
+
+        response = self.model.query(self.messages, self.responses, **kwargs)
+        if not response["content"]:
+            # If content is empty, we assume Gym model has raised out of context error.
+            raise LimitsExceeded()
         self.add_message("assistant", response["content"])
+        self.responses.append(response["response_obj"])
         return response
 
     def get_observation(self, response: dict) -> dict:
@@ -104,9 +172,11 @@ class DefaultAgent:
 
     def parse_action(self, response: dict) -> dict:
         """Parse the action from the message. Returns the action."""
-        actions = re.findall(r"```bash\n(.*?)\n```", response["content"], re.DOTALL)
+        actions = re.findall(r"```bash\s*\n(.*?)\n```", response["content"], re.DOTALL)
         if len(actions) == 1:
-            return {"action": actions[0].strip(), **response}
+            action = actions[0].strip()
+            self.check_collapse(action)  # Check collapse on the parsed command
+            return {"action": action, **response}
         raise FormatError(self.render_template(self.config.format_error_template, actions=actions))
 
     def execute_action(self, action: dict) -> dict:
@@ -119,11 +189,25 @@ class DefaultAgent:
             )
         except TimeoutError:
             raise ExecutionTimeoutError(self.render_template(self.config.timeout_template, action=action, output=""))
+
+        if output.get("output", None):
+            lines = output.get("output", "").lstrip().splitlines()
+            # (hack) Skip all the lines due to singulaity exec info/warning
+            exec_output_only = []
+            for line in lines:
+                # print(f"DEBUB action result:", line)
+                if "/etc/singularity/ exists" in line or "Ignoring invalid max threads value" in line:
+                    continue
+                exec_output_only.append(line)
+            output["output"] = "\n".join(exec_output_only)
+
+        lines = output.get("output", "").lstrip().splitlines()
+        print("DEBUG command", action["action"])
         self.has_finished(output)
         return output
 
     def has_finished(self, output: dict[str, str]):
         """Raises Submitted exception with final output if the agent has finished its task."""
-        lines = output.get("output", "").lstrip().splitlines()
-        if lines and lines[0].strip() == "MINI_SWE_AGENT_FINAL_OUTPUT":
-            raise Submitted("\n".join(lines[1:]))
+        lines = output.get("output", "").lstrip().splitlines(keepends=True)
+        if lines and lines[0].strip() in ["MINI_SWE_AGENT_FINAL_OUTPUT", "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"]:
+            raise Submitted("".join(lines[1:]))

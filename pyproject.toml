@@ -34,7 +34,7 @@ dependencies = [
     "pyyaml",
     "requests",
     "jinja2",
-    "litellm",
+    "litellm==1.74.15.post1",
     "tenacity",
     "rich",
     "python-dotenv",
@@ -42,6 +42,8 @@ dependencies = [
     "platformdirs",
     "textual",
     "prompt_toolkit",
+    "datasets>=4.0.0",
+    "hf-transfer>=0.1.9",
 ]
 
 [project.optional-dependencies]
