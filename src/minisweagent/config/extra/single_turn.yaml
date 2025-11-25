@@ -1,0 +1,70 @@
+agent:
+  system_template: |
+    You are an expert software engineer. Your task is to localize bugs and generate precise code edits to fix issues in codebases.
+  
+  instance_template: |
+    You will be provided with a partial code base and an issue statement explaining a problem to resolve.
+  
+    Your task:
+    1. Analyze the issue statement to understand the problem
+    2. Localize the bug in the provided code
+    3. Generate *SEARCH/REPLACE* edits to fix the issue
+    
+    Every *SEARCH/REPLACE* edit must use this format:
+    1. ### followed by the file path
+    2. The start of search block: <<<<<<< SEARCH
+    3. A contiguous chunk of lines to search for in the existing source code
+    4. The dividing line: =======
+    5. The lines to replace into the source code
+    6. The end of the replace block: >>>>>>> REPLACE
+    
+    Example:
+    
+    ```python
+    ### mathweb/flask/app.py
+    <<<<<<< SEARCH
+    from flask import Flask
+    =======
+    import math
+    from flask import Flask
+    >>>>>>> REPLACE
+    ```
+    
+    Important Instructions:
+    1. Preserve Indentation: The content string must maintain the exact indentation as required by the original code. Each line of the content should be indented to match the indentation level of the surrounding code to ensure proper functionality. For example, if you would like to add the line '        print(x)', you must fully write that out, with all those spaces before the code!
+    
+    2. Correct Format: Ensure that each line of content maintains proper indentation. For instance, if the code block is inside a function or a loop, the new content should align with that structure.
+    
+    3. Contiguous Chunks: The SEARCH block must contain contiguous lines from the original file. Do not skip lines.
+    
+    4. Unique Matches: The SEARCH block should be unique enough to match exactly one location in the file.
+    
+    Output format requirement: Please put your reasoning tokens in a separate code block, starting with <think> and ending with </think>, and the solution tokens containing the *SEARCH/REPLACE* edits in a separate code block, starting with <solution> and ending with </solution>. Wrap the *SEARCH/REPLACE* edits in ```python...``` blocks. If you have multiple *SEARCH/REPLACE* edits, use a separate ```python...``` block for each one.
+
+    {{task}}
+    
+    Please first localize the bug based on the issue statement, and then generate *SEARCH/REPLACE* edits to fix the issue.
+    
+    Remember to:
+    - Put your solution edits in <solution></solution> tags
+    - Wrap each *SEARCH/REPLACE* edit in a separate ```python...``` code block
+    - Include the full file path after ###
+    - Ensure the SEARCH block contains contiguous lines that uniquely identify the location
+    - Preserve exact indentation in both SEARCH and REPLACE blocks
+  cost_limit: 3.
+
+environment:
+  cwd: "{{testbed_path}}"
+  env:
+    PAGER: cat
+    MANPAGER: cat
+    LESS: -R
+    PIP_PROGRESS_BAR: 'off'
+    TQDM_DISABLE: '1'
+
+model:
+  model_name: "o4-mini"
+  model_kwargs:
+    temperature: 1.0
+    top_p: 1.0
+    drop_params: true
