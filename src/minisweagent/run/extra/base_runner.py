@@ -9,7 +9,7 @@ import re
 import time
 import traceback
 import uuid
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +21,7 @@ from minisweagent.agents.default import DefaultAgent
 from minisweagent.config import builtin_config_dir, get_config_path
 from minisweagent.environments import ENV_MAP, DockerEnvironment, SingularityEnvironment
 from minisweagent.models import get_model
+from minisweagent.run.extra.evaluators import Evaluator
 from minisweagent.run.extra.runner_config import ProcessInstanceConfig, RunnerConfig
 from minisweagent.run.extra.utils.batch_progress import RunBatchProgressManager
 from minisweagent.run.utils.save import save_traj
@@ -48,24 +49,27 @@ class ProgressTrackingAgent(DefaultAgent):
         return super().step()
 
 
-class SWEGymRunner(ABC):
+class SWEGymRunner:
     """Base class for running SWEGym instances with different evaluation strategies."""
 
-    DATASET_MAPPING = {
+    INTERNAL_DATASET_MAPPING = {
+        "nv-internal-1": "",
+    }
+
+    EXTERNAL_DATASET_MAPPING = {
         "gym": "SWE-Gym/SWE-Gym",
         "verified": "princeton-nlp/SWE-Bench_Verified",
     }
 
+    SUBSET_TO_CONDA_ENV = {
+        "nv-internal-1": None,
+        "gym": "testbed",
+        "verified": "testbed",
+    }
+
     @abstractmethod
-    def run_eval(
-        self,
-        cfg: ProcessInstanceConfig,
-        trajectory_data: dict,
-        env: SingularityEnvironment | DockerEnvironment,
-        model_patch: str,
-        instance_dir: Path,
-    ) -> dict:
-        """Run evaluation on the instance. Must be implemented by subclasses."""
+    def get_evaluator(self, subset: str) -> Evaluator:
+        """Get the appropriate evaluator for the given subset. Override in subclass."""
         pass
 
     @staticmethod
@@ -83,6 +87,8 @@ class SWEGymRunner(ABC):
                 iid = instance["instance_id"]
                 id_docker_compatible = iid.replace("__", "_1776_")
                 image_name = f"swebench/sweb.eval.x86_64.{id_docker_compatible}:latest".lower()
+        if subset == "nv-internal-1":
+            image_name = ""
         return image_name
 
     @staticmethod
@@ -122,7 +128,6 @@ class SWEGymRunner(ABC):
         instance_dir = cfg.output_dir / instance_id
 
         image_name = self.get_swegym_docker_image_name(cfg.instance, cfg.subset)
-        
         # TODO: use a better way to replace the testbed_path in the config
         config_text = get_config_path(cfg.config_path).read_text()
         config_text = config_text.replace("{{testbed_path}}", cfg.testbed_path)
@@ -157,6 +162,8 @@ class SWEGymRunner(ABC):
                         "step_timeout": cfg.step_timeout,
                         "eval_timeout": cfg.eval_timeout,
                         "instance_id": instance_id,
+                        "cwd": cfg.testbed_path,
+                        "conda_env": self.SUBSET_TO_CONDA_ENV[cfg.subset],
                     }
                 ),
             )
@@ -189,7 +196,8 @@ class SWEGymRunner(ABC):
                 instance_id=instance_id,
             )
 
-            eval_report = self.run_eval(
+            evaluator = self.get_evaluator(cfg.subset)
+            eval_report = evaluator.evaluate(
                 cfg=cfg,
                 trajectory_data=data,
                 env=env,
@@ -229,8 +237,16 @@ class SWEGymRunner(ABC):
         responses_create_params = json.loads(cfg.responses_create_params) if cfg.responses_create_params else {}
 
         run_id = f"{int(time.time())}_{str(uuid.uuid4())}"
+
+        if cfg.subset in self.INTERNAL_DATASET_MAPPING:
+            dataset_path = self.INTERNAL_DATASET_MAPPING[cfg.subset]
+        else:
+            dataset_path = self.EXTERNAL_DATASET_MAPPING[cfg.subset]
+
         env_cls = ENV_MAP[cfg.env]
-        dataset_path = self.DATASET_MAPPING.get(cfg.subset, cfg.subset)
+
+        assert dataset_path == "" and cfg.instance_dict, "No instance dict provided for internal dataset"
+
         instance_dict = json.loads(cfg.instance_dict) if cfg.instance_dict else None
         instances = [instance_dict] if instance_dict else list(load_dataset(dataset_path, split=cfg.split))
 
@@ -243,9 +259,7 @@ class SWEGymRunner(ABC):
 
         assert len(instances) != 0, "No valid instances found!"
 
-        instances = self.filter_instances(
-            instances, filter_spec=cfg.filter, slice_spec=cfg.slice, shuffle=cfg.shuffle
-        )
+        instances = self.filter_instances(instances, filter_spec=cfg.filter, slice_spec=cfg.slice, shuffle=cfg.shuffle)
         output_path = Path(cfg.output)
         output_path.mkdir(parents=True, exist_ok=True)
 
@@ -311,21 +325,22 @@ def create_typer_options_from_config(cfg_model: type[RunnerConfig], overrides: d
     for field_name, field_info in cfg_model.model_fields.items():
         default_value = overrides.get(field_name, field_info.default)
         description = field_info.description or ""
-        
+
         short_flags = {
             "output": "-o",
             "workers": "-w",
             "model": "-m",
             "config": "-c",
         }
-        
+
         flags = [f"--{field_name}"]
         if field_name in short_flags:
             flags.insert(0, short_flags[field_name])
-    
+
         options[field_name] = typer.Option(default_value, *flags, help=description)
-    
+
     return options
+
 
 def make_runner_command(runner_cls: type[SWEGymRunner], help_text: str, **default_overrides):
     """Factory to create a complete typer command for a runner class."""
@@ -388,4 +403,3 @@ def make_runner_command(runner_cls: type[SWEGymRunner], help_text: str, **defaul
         runner_cls().run(runner_cfg)
 
     return app
-

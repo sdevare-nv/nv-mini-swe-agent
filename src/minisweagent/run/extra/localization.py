@@ -1,11 +1,10 @@
 import json
 from pathlib import Path
 
-from swegym.harness.constants import SWEbenchInstance
-
 from minisweagent.config import builtin_config_dir
 from minisweagent.environments import DockerEnvironment, SingularityEnvironment
 from minisweagent.run.extra.base_runner import SWEGymRunner, make_runner_command
+from minisweagent.run.extra.evaluators import Evaluator
 from minisweagent.run.extra.runner_config import ProcessInstanceConfig
 from minisweagent.run.extra.utils.parsing import get_changed_files_from_diff
 
@@ -17,10 +16,10 @@ More information about the usage: [bold green]https://mini-swe-agent.com/latest/
 """
 
 
-class LocalizationRunner(SWEGymRunner):
-    """Runner that evaluates file localization by comparing predicted files with ground truth."""
+class LocalizationEvaluator(Evaluator):
+    """Evaluator for file localization by comparing predicted files with ground truth."""
 
-    def run_eval(
+    def evaluate(
         self,
         cfg: ProcessInstanceConfig,
         trajectory_data: dict,
@@ -65,6 +64,14 @@ class LocalizationRunner(SWEGymRunner):
             json.dump(report, f)
 
         return report
+
+
+class LocalizationRunner(SWEGymRunner):
+    """Runner that evaluates file localization by comparing predicted files with ground truth."""
+
+    def get_evaluator(self, subset: str) -> Evaluator:
+        """Get the localization evaluator."""
+        return LocalizationEvaluator()
 
 
 app = make_runner_command(

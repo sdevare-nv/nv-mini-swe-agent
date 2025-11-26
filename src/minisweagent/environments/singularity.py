@@ -43,7 +43,7 @@ class SingularityEnvironmentConfig:
 
     image: str
     """Image to use for the container, e.g., 'ubuntu:22.04'"""
-    cwd: str = "/"
+    cwd: str = "/testbed"
     """Default working directory in which to execute commands."""
     env: dict[str, str] = field(default_factory=dict)
     """Environment variables to set in the container. These will override host variables."""
@@ -59,6 +59,8 @@ class SingularityEnvironmentConfig:
     """Directory to cache singularity SIF files. This is a template string that will be formatted with the instance ID."""
     instance_id: str | None = None
     """Instance ID to use for the cache directory."""
+    conda_env: str | None = None
+    """Conda environment to activate before running commands. If None, no conda environment is activated."""
 
 
 class SingularityEnvironment:
@@ -83,7 +85,6 @@ class SingularityEnvironment:
         self.config = config_class(**kwargs)
         self._is_cleaned_up = False
         self._fallback_mode = False
-        self.pwd = "testbed"
         self._install_cnt = 0
         self._max_install_cnt = 20
         self.run_id = str(uuid.uuid4())
@@ -186,7 +187,7 @@ class SingularityEnvironment:
 
         cmd = [
             self.config.executable,
-            "run",
+            "exec",
             "--writable-tmpfs",
             "--containall",
             "--no-mount",
@@ -194,7 +195,7 @@ class SingularityEnvironment:
             "--bind",
             f"{self.server_script_path}:{server_path_in_container}:ro,{self.uv_executable_path}:{uv_in_container}:ro,{self.uv_cache_dir}:{uv_cache_in_container}",
             "--pwd",
-            self.pwd,
+            self.config.cwd,
             *self.config.start_args,
         ]
         for key, value in self.config.env.items():
@@ -308,6 +309,7 @@ timeout {pip_timeout} {uv_in_container} pip install --python {venv_path}/bin/pyt
             # Search for .sif files with either replacement pattern (case-insensitive)
             # Include both original case and lowercase versions
             patterns = [
+                os.path.join(container_dir, f"*{instance_id}*.sif"),
                 os.path.join(container_dir, f"*{replaced_id_1776}*.sif"),
                 os.path.join(container_dir, f"*{replaced_id_s}*.sif"),
                 os.path.join(container_dir, f"*{replaced_id_1776.lower()}*.sif"),
@@ -400,13 +402,14 @@ timeout {pip_timeout} {uv_in_container} pip install --python {venv_path}/bin/pyt
             raise RuntimeError("Cannot execute command: The environment has been cleaned up or initialization failed.")
 
         # target_cwd = cwd or self.config.cwd
+        cwd = cwd or self.config.cwd
         subprocess_timeout = self.config.eval_timeout if is_eval else self.config.step_timeout
         http_timeout = subprocess_timeout + 30
 
         try:
             response = requests.post(
                 f"http://localhost:{self.port}/run_command",
-                json={"command": command, "timeout": subprocess_timeout},
+                json={"command": command, "timeout": subprocess_timeout, "conda_env": self.config.conda_env, "cwd": cwd},
                 timeout=http_timeout,
             )
             response.raise_for_status()
