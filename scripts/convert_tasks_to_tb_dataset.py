@@ -16,6 +16,8 @@ def convert_tasks_to_tb_dataset(input_path: Path, output_path: Path):
                 problem_statement="",
                 test_script="",
                 test_files=[],
+                subset="terminal-bench",
+                split="train",
                 responses_create_params={"input": []},
                 agent_ref={"type": "responses_api_agents", "name": "terminal_bench_simple_agent_train"}, # change to terminal_bench_simple_agent_val for validation set
             )
