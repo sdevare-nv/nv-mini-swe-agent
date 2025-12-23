@@ -9,7 +9,7 @@ from typing import Any
 @dataclass
 class DockerEnvironmentConfig:
     image: str
-    cwd: str = "/"
+    cwd: str = "/testbed"
     """Working directory in which to execute commands."""
     env: dict[str, str] = field(default_factory=dict)
     """Environment variables to set in the container."""

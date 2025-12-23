@@ -11,6 +11,7 @@ traj.json
 gym_images/*
 logs/*
 outputs*
+.shared*
 
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python

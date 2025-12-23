@@ -9,13 +9,14 @@ import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-CONDA_ENV = None
 shutdown_event = asyncio.Event()
 
 
 class CommandRequest(BaseModel):
     command: str
     timeout: float | None = None
+    cwd: str = "/testbed"
+    conda_env: str | None = None
 
 
 class CommandResult(BaseModel):
@@ -44,12 +45,11 @@ def signal_handler(signum, frame):
 
 @app.post("/run_command", response_model=CommandResult)
 async def run_command(req: CommandRequest):
-    activation_cmd = ""
-    if CONDA_ENV:
-        # TODO(sugam): /testbed is hardcoded here.
-        activation_cmd = (
-            f"cd /testbed && source $(conda info --base)/etc/profile.d/conda.sh && conda activate {CONDA_ENV} && "
-        )
+    activation_cmd = (
+        f"cd {req.cwd} && source $(conda info --base)/etc/profile.d/conda.sh && conda activate {req.conda_env} && "
+        if req.conda_env
+        else f"cd {req.cwd} && "
+    )
 
     clean_command = textwrap.dedent(req.command)
     full_command = f"{activation_cmd}{clean_command}"
@@ -121,13 +121,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, required=True, help="Port to run the server on")
-    parser.add_argument(
-        "--conda_env", type=str, default="testbed", help="Name of the conda environment to run commands in"
-    )
     args = parser.parse_args()
-
-    CONDA_ENV = args.conda_env
-    print(f"Commands will run inside the '{CONDA_ENV}' Conda environment.")
 
     # Run with explicit shutdown settings
     start_server(app, host="0.0.0.0", port=args.port)
