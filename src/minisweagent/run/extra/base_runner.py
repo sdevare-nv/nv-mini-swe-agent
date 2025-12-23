@@ -18,14 +18,14 @@ import yaml
 from datasets import load_dataset
 
 from minisweagent.agents.default import DefaultAgent
-from minisweagent.config import builtin_config_dir, get_config_path
-from minisweagent.environments import ENV_MAP, DockerEnvironment, SingularityEnvironment
+from minisweagent.config import get_config_path
+from minisweagent.environments import ENV_MAP
 from minisweagent.models import get_model
 from minisweagent.run.extra.evaluators import Evaluator
 from minisweagent.run.extra.runner_config import ProcessInstanceConfig, RunnerConfig
 from minisweagent.run.extra.utils.batch_progress import RunBatchProgressManager
 from minisweagent.run.utils.save import save_traj
-
+from minisweagent.agents.terminal_bench import TerminalBenchAgent
 
 class ProgressTrackingAgent(DefaultAgent):
     """Simple wrapper around DefaultAgent that provides progress updates."""
@@ -54,6 +54,7 @@ class SWEGymRunner:
 
     INTERNAL_DATASET_MAPPING = {
         "nv-internal-1": "",
+        "terminal-bench": "",
     }
 
     EXTERNAL_DATASET_MAPPING = {
@@ -63,6 +64,7 @@ class SWEGymRunner:
 
     SUBSET_TO_CONDA_ENV = {
         "nv-internal-1": None,
+        "terminal-bench": None,
         "gym": "testbed",
         "verified": "testbed",
     }
@@ -87,7 +89,7 @@ class SWEGymRunner:
                 iid = instance["instance_id"]
                 id_docker_compatible = iid.replace("__", "_1776_")
                 image_name = f"swebench/sweb.eval.x86_64.{id_docker_compatible}:latest".lower()
-        if subset == "nv-internal-1":
+        if subset in ["nv-internal-1", "terminal-bench"]:
             image_name = ""
         return image_name
 
@@ -113,14 +115,26 @@ class SWEGymRunner:
 
     def create_agent(self, cfg: ProcessInstanceConfig, model, env, agent_config: dict) -> ProgressTrackingAgent:
         """Create agent for the instance. Override in subclasses for custom agent creation."""
-        return ProgressTrackingAgent(
-            model,
-            env,
-            cfg.responses_create_params,
-            progress_manager=cfg.progress_manager,
-            instance_id=cfg.instance["instance_id"],
-            **agent_config,
-        )
+
+        if cfg.subset == "terminal-bench":
+            agent = TerminalBenchAgent(
+                model,
+                env,
+                cfg.responses_create_params,
+                progress_manager=cfg.progress_manager,
+                instance_id=cfg.instance["instance_id"],
+                **agent_config,
+            )
+        else:
+            agent = ProgressTrackingAgent(
+                model,
+                env,
+                cfg.responses_create_params,
+                progress_manager=cfg.progress_manager,
+                instance_id=cfg.instance["instance_id"],
+                **agent_config,
+            )
+        return agent
 
     def process_instance(self, cfg: ProcessInstanceConfig) -> tuple[dict | None, dict | None]:
         """Process a single SWEGym instance."""

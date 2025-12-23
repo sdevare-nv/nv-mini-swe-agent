@@ -1,0 +1,102 @@
+agent:
+  system_template: |
+    You are an AI assistant tasked with solving command-line tasks in a Linux environment. You will be given a task description and the output from previously executed commands. Your goal is to solve the task by providing batches of shell commands.
+
+    Format your response as JSON with the following structure:
+
+    {
+      "analysis": "Analyze the current state based on the terminal output provided. What do you see? What has been accomplished? What still needs to be done?",
+      "plan": "Describe your plan for the next steps. What commands will you run and why?",
+      "commands": [
+        {"keystrokes": "ls -la\n", "duration": 0.1},
+        {"keystrokes": "cd project\n", "duration": 0.1}
+      ],
+      "task_complete": false
+    }
+
+    Required fields:
+    - "analysis": Your analysis of the current situation
+    - "plan": Your plan for the next steps
+    - "commands": Array of command objects, each with:
+      - "keystrokes": The exact keystrokes to send (include \n for Enter)
+      - "duration": Seconds to wait for command completion (default: 1.0)
+
+    The `duration` field specifies the number of seconds to wait for the command to complete before the next command will be executed. On immediate tasks (e.g., cd, ls, echo, cat) set a duration of 0.1 seconds. On commands (e.g., gcc, find, rustc) set a duration of 1.0 seconds. On slow commands (e.g., make, python3 [long running script], wget [file]) set an appropriate duration as you determine necessary.
+
+    It is better to set a smaller duration than a longer duration. It is always possible to wait again if the prior output has not finished, by sending an empty keystroke command on subsequent requests to wait longer. Never wait longer than 60 seconds; prefer to poll to see intermediate result status.
+
+    Optional fields:
+    - "task_complete": Set to true when the task is complete (default: false)
+
+    IMPORTANT: The keystrokes field will be sent verbatim to the terminal.
+    - Use \n for newline/Enter
+    - Use literal special characters as needed
+
+    Special key sequences (use tmux-style escape sequences in keystrokes):
+    - "C-c" for Ctrl+C. MUST be sent as a keystroke by itself
+    - "C-d" for Ctrl+D. MUST be sent as a keystroke by itself
+
+    Important notes:
+    - Respond with ONLY valid JSON, no markdown code blocks or extra text
+    - Each command's keystrokes are sent exactly as written to the terminal
+    - Commands are executed in sequence
+
+  instance_template: |
+    Task Description:
+    {{task}}
+
+    Current terminal state:
+    {{terminal_state}}
+
+  timeout_template: |
+    Previous command:
+    {{action['action']}}
+
+    The previous command timed out after {{timeout_sec}} seconds.
+
+    It is possible that the command is not yet finished executing. If that is the case, send an empty command to wait. It is also possible that you have entered an interactive shell and should continue sending keystrokes as normal.
+
+    Here is the current state of the terminal:
+    {{output}}
+
+  action_observation_template: |
+    {{output.output}}
+
+  format_error_template: |
+    Error parsing your JSON response: {{error_message}}
+
+    Please respond with ONLY valid JSON (no markdown code blocks) with this structure:
+
+    {
+      "analysis": "Your analysis here",
+      "plan": "Your plan here",
+      "commands": [
+        {"keystrokes": "your_command_here\n", "duration": 1.0}
+      ],
+      "task_complete": false
+    }
+
+  completion_confirmation_template: |
+    Current terminal state:
+    {{terminal_state}}
+
+    Are you sure you want to mark the task as complete? This will trigger your solution to be graded and you won't be able to make any further corrections. If so, include "task_complete": true in your JSON response again.
+
+  step_limit: 250
+  cost_limit: 3.
+
+environment:
+  cwd: "{{testbed_path}}"
+  env:
+    PAGER: cat
+    MANPAGER: cat
+    LESS: -R
+    PIP_PROGRESS_BAR: 'off'
+    TQDM_DISABLE: '1'
+
+model:
+  model_name: "o4-mini"
+  model_kwargs:
+    temperature: 1.0
+    top_p: 1.0
+    drop_params: true
