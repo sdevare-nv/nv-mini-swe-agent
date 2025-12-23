@@ -91,7 +91,7 @@ class TerminalBenchEvaluator(Evaluator):
             }
 
 
-class TestRunner(SWEGymRunner):
+class TerminalBenchRunner(SWEGymRunner):
     """Runner that evaluates using Terminal Bench evaluator."""
 
     def get_evaluator(self, subset: str) -> Evaluator:
@@ -109,7 +109,7 @@ class TestRunner(SWEGymRunner):
 
 
 app = make_runner_command(
-    TestRunner,
+    TerminalBenchRunner,
     _HELP_TEXT,
     config=builtin_config_dir / "extra" / "terminal_bench.yaml",
 )
